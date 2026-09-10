@@ -1,0 +1,19 @@
+{
+  "output": "F:\\project\\gas-flowmeter-control\\doc\\Design Document\\流量计控制系统软件设计-草稿.docx",
+  "output_sha256": "864df806df19da6ad86156afa67910d3fddd7b61cb24b8a31ef36e3657cb498c",
+  "backup_sha256": "3f8d204e6aa5d31f5955841522810eb473f3813efb95a6707881094620512f31",
+  "pages": 22,
+  "all_pages_visually_inspected": true,
+  "truth_table_states": {
+    "(False, False, False)": true,
+    "(True, False, False)": true,
+    "(False, True, False)": true,
+    "(True, True, False)": true,
+    "(False, False, True)": true,
+    "(True, False, True)": false,
+    "(False, True, True)": false,
+    "(True, True, True)": false
+  },
+  "EX201_protocol_preserved": true,
+  "version": "V0.2"
+}

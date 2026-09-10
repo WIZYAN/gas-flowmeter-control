@@ -1,0 +1,21 @@
+# Template execution contract
+
+- Reference: F:/project/gas-flowmeter-control/tmp/design-doc/template-reference.docx
+- SHA256: dde9c86ede69675f59a98c5e2ab93f7d4479ea38b5e066f96778ed65fe421875
+- Reference render: reference-render/page-1.png through page-18.png, all inspected. PDF exported read-only by Word because packaged LibreOffice is unavailable on Windows; render_docx.py rasterization used through a conversion adapter.
+- Evidence: template-parts.json, template-style.json, template-text.txt. 3 sections; 18 rendered pages.
+- A4 portrait 11906 x 16838 twips. Sections 1/2: margins top/bottom 1440, left/right 1800. Section 3: 720 all sides. Header distance 851, footer 992. Single column. Preserve these section geometries.
+- Cover: source body p[6] subject and p[8] subtitle use MM Title, centered Song 22 pt. Add Word Title style with identical appearance for these slots. Metadata source body p[15:20] left aligned at first-line 1920 twips; name/date/author/reviewer/proofreader labels and underlined fields retained; replace project name and leave unconfirmed people blank.
+- Modification page: source table 0 with merged title, 4 columns, black 0.5 pt borders. Fill one revision row; retain remaining empty revision slots and source widths.
+- TOC section: replace stale fields and invalid bookmarks with a fresh heading TOC. Preserve source TOC typography and dot leaders, use levels 1-2 to keep navigation compact. Refresh through Word. Remove the pre-existing blank TOC page.
+- Body: Normal style id 1, Song 12 pt Chinese, Calibri Latin, 1.5 line spacing, first-line 420 twips. Heading 1 id 2: 22 pt bold, centered, source chapter numbering; Heading 2 id 3 and Heading 3 id 4: 16 pt bold, source decimal numbering. Preserve styles, using local paragraph spacing controls for page flow only.
+- Tables: clone source grid table properties and paragraph roles; black borders, no shading, cell horizontal margin 108 twips. New tables sized to body width, column widths depend on content; repeat header and prohibit row splitting. Table text 11-12 pt matching source variants; add small top/bottom padding to avoid clipping.
+- Headers and footers: retain source positioning and line/borders, replace unrelated company text with this project title. Preserve PAGE and SECTIONPAGES field form and refresh values. Section 1 first page blank header.
+- Editable slots: document.xml body children 6,8,15:20 metadata; child21 revision table; child23:52 TOC; child53:end entire project content, including old gas bottle drawing and external diagram links. Replace all old technical material. Keep the two source section-break paragraphs and final sectPr.
+- New body uses the same four major chapters: introduction, requirements, architecture, detailed module design. Expand module chapter to include communication, MFC control, valves, host interface, config, alarms, validation and pending decisions. Add original technical diagrams as inline images replacing obsolete drawing slots.
+- Package preservation: retain original source archive untouched. Preserve all package parts byte-for-byte except document.xml, styles.xml (Title added), settings.xml (updateFields), relevant header text, document relationships (obsolete external diagram/image references removed and new figures added), content types (new PNG content type if necessary), and core properties. Footer field caches/document TOC may be updated from a Word-refreshed working copy. Unused legacy media may remain in package but must have no body references. No comments/controls in project slots require preservation.
+- Gates: all old gas bottle logic, 18-valve mapping, pressure Modbus examples and unsupported HMI/EEPROM choices removed. Verify all final pages, TOC fields and protocol example checksums. Header layout recognizable; source section geometry exact. Geometry and preserve-only part SHA checks must pass.
+
+
+## Final fidelity repair record
+Word refreshed the TOC and page fields. All 20 pages inspected. Body top/bottom margins were increased to 1440 twips to repair the original template header/table contact, retaining side margins, A4 size, 3 sections and all typography. Word normalized package parts and consolidated new image relationships; original archive remains unchanged. Detailed QA: final-qa.json.

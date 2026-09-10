@@ -1,0 +1,56 @@
+{
+  "source_sha256": "3f8d204e6aa5d31f5955841522810eb473f3813efb95a6707881094620512f31",
+  "output": "F:\\project\\gas-flowmeter-control\\tmp\\draft-revision\\流量计控制系统软件设计-草稿.docx",
+  "revised_paragraphs": 25,
+  "tables": 18,
+  "valve_truth_table": [
+    {
+      "V7": 0,
+      "V8": 0,
+      "V9": 0,
+      "allowed": true
+    },
+    {
+      "V7": 0,
+      "V8": 0,
+      "V9": 1,
+      "allowed": true
+    },
+    {
+      "V7": 0,
+      "V8": 1,
+      "V9": 0,
+      "allowed": true
+    },
+    {
+      "V7": 0,
+      "V8": 1,
+      "V9": 1,
+      "allowed": false
+    },
+    {
+      "V7": 1,
+      "V8": 0,
+      "V9": 0,
+      "allowed": true
+    },
+    {
+      "V7": 1,
+      "V8": 0,
+      "V9": 1,
+      "allowed": false
+    },
+    {
+      "V7": 1,
+      "V8": 1,
+      "V9": 0,
+      "allowed": true
+    },
+    {
+      "V7": 1,
+      "V8": 1,
+      "V9": 1,
+      "allowed": false
+    }
+  ]
+}

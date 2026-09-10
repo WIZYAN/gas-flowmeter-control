@@ -1,0 +1,22 @@
+{
+  "final_path": "F:\\project\\gas-flowmeter-control\\doc\\Design Document\\流量计控制系统软件设计.docx",
+  "pages": 20,
+  "body_pages": 17,
+  "visual_review": "All 20 pages inspected at 115 dpi; no clipping, overlap, blank pages, or stale TOC fields",
+  "template": "Original cover, 3 sections, chapter numbering, type hierarchy, grid tables and page furniture retained",
+  "repairs": [
+    "TOC nesting and invalid bookmarks rebuilt",
+    "Empty TOC page removed",
+    "Body top and bottom margins set to 1440 twips to separate header/footer from content"
+  ],
+  "source_sha256_unchanged": true,
+  "field_refresh": "Microsoft Word; opaque OOXML normalized by Word, original retained byte-for-byte",
+  "examples_checked": [
+    "@001RCFRFE<CR>",
+    "@001WFSM03E<CR>",
+    "@001WSFD0250CC<CR>",
+    "@001WVSS256<CR>",
+    "@001RVSS1F<CR>",
+    "%001RVSSOK1CF<CR>"
+  ]
+}
