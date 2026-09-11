@@ -68,12 +68,12 @@
       <configSetting altId="p411.output.low" configurationId="p411"/>
       <configSetting altId="p501.output.low" configurationId="p501"/>
       <configSetting altId="p502.output.low" configurationId="p502"/>
-      <configSetting altId="sci2.rxd.p301" configurationId="sci2.rxd"/>
-      <configSetting altId="sci2.txd.p302" configurationId="sci2.txd"/>
-      <configSetting altId="spi1.miso.p110" configurationId="spi1.miso"/>
-      <configSetting altId="spi1.mosi.p109" configurationId="spi1.mosi"/>
-      <configSetting altId="spi1.rspck.p111" configurationId="spi1.rspck"/>
-      <configSetting altId="spi1.ssl0.p112" configurationId="spi1.ssl0"/>
+      <configSetting altId="sci2.rxd.p301" configurationId="sci2.rxd" isUsedByDriver="true"/>
+      <configSetting altId="sci2.txd.p302" configurationId="sci2.txd" isUsedByDriver="true"/>
+      <configSetting altId="spi1.miso.p110" configurationId="spi1.miso" isUsedByDriver="true"/>
+      <configSetting altId="spi1.mosi.p109" configurationId="spi1.mosi" isUsedByDriver="true"/>
+      <configSetting altId="spi1.rspck.p111" configurationId="spi1.rspck" isUsedByDriver="true"/>
+      <configSetting altId="spi1.ssl0.p112" configurationId="spi1.ssl0" isUsedByDriver="true"/>
     </pincfg>
   </raPinConfiguration>
 </raConfiguration>

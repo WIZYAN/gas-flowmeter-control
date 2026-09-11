@@ -6,6 +6,27 @@
 /* Common macro for FSP header files. There is also a corresponding FSP_FOOTER macro at the end of this file. */
 FSP_HEADER
 
+#define VALP2 (BSP_IO_PORT_00_PIN_00) /* VALP2 */
+#define VAL2 (BSP_IO_PORT_00_PIN_01) /* VAL2 */
+#define VAL3 (BSP_IO_PORT_00_PIN_02) /* VAL3 */
+#define VAL1 (BSP_IO_PORT_00_PIN_03) /* VAL1 */
+#define VALP1 (BSP_IO_PORT_00_PIN_04) /* VALP1 */
+#define CAN_RXD0 (BSP_IO_PORT_01_PIN_02) /* CAN_RXD0 */
+#define CAN_TXD0 (BSP_IO_PORT_01_PIN_03) /* CAN_TXD0 */
+#define MFC_LINKOUT (BSP_IO_PORT_02_PIN_05) /* MFC_LINKOUT */
+#define FMC_LINKIN (BSP_IO_PORT_02_PIN_06) /* FMC_LINKIN */
+#define FMC_RES2 (BSP_IO_PORT_03_PIN_03) /* FMC_RES2 */
+#define FMC_EN2 (BSP_IO_PORT_03_PIN_04) /* FMC_EN2 */
+#define VAL4 (BSP_IO_PORT_04_PIN_00) /* VAL4 */
+#define VAL6 (BSP_IO_PORT_04_PIN_01) /* VAL6 */
+#define VAL5 (BSP_IO_PORT_04_PIN_02) /* VAL5 */
+#define STATUS (BSP_IO_PORT_04_PIN_07) /* STATUS */
+#define VAL9 (BSP_IO_PORT_04_PIN_08) /* VAL9 */
+#define VALP3 (BSP_IO_PORT_04_PIN_09) /* VALP3 */
+#define VAL7 (BSP_IO_PORT_04_PIN_10) /* VAL7 */
+#define VAL8 (BSP_IO_PORT_04_PIN_11) /* VAL8 */
+#define RS485_RES0 (BSP_IO_PORT_05_PIN_01) /* RS485_RES0 */
+#define RS485_EN0 (BSP_IO_PORT_05_PIN_02) /* RS485_EN0 */
 extern const ioport_cfg_t g_bsp_pin_cfg; /* R7FA4M1AB3CFM.pincfg */
 
 void BSP_PinConfigSecurityInit();
