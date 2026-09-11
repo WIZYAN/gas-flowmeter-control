@@ -1,28 +1,47 @@
-# e2 studio / Eclipse workspace and build outputs
+# e2 studio / Eclipse local workspace and build outputs
+# Keep .project, .cproject, .settings/, configuration.xml, *.pincfg,
+# ra/, ra_cfg/ and ra_gen/ under version control.
 .metadata/
 Debug/
 Release/
 Build_Verify/
-
-# VisualTFT generated outputs
-GAS_CONTROL_RTOS/hmi-screen/GasControl_HMI_*/output/
-GAS_CONTROL_RTOS/hmi-screen/GasControl_HMI_*/dciot_build/
+/GS_flowmeter/build/
 
 # Compiler intermediate files
 *.o
+*.obj
 *.d
 *.su
 *.elf
 *.map
 *.exe
+# Vendor configuration tools are project reference material.
+!/doc/**/*.exe
+
+# Firmware images and listings generated in the project root
+/GS_flowmeter/*.hex
+/GS_flowmeter/*.bin
+/GS_flowmeter/*.srec
+/GS_flowmeter/*.mot
+/GS_flowmeter/*.lst
 
 # Local IDE and temporary data
 p2/
 tmp/
 temp/
 __pycache__/
-*.pyc
+*.py[cod]
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Office / Visio / LibreOffice temporary lock files
+# Keep final documents, diagrams and version archives tracked.
+~$*
+.~lock.*#
 
 # OS files
 Thumbs.db
 Desktop.ini
+.DS_Store
