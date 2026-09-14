@@ -37,8 +37,8 @@ extern spi_instance_ctrl_t g_mfc_spi_ctrl;
 extern const spi_cfg_t g_mfc_spi_cfg;
 
 /** Callback used by SPI Instance. */
-#ifndef spi_callback
-void spi_callback(spi_callback_args_t *p_args);
+#ifndef H_MFC_CAN_SpiCallback
+void H_MFC_CAN_SpiCallback(spi_callback_args_t *p_args);
 #endif
 
 #define RA_NOT_DEFINED (1)
@@ -61,8 +61,8 @@ extern sci_uart_instance_ctrl_t g_mfc_uart_ctrl;
 extern const uart_cfg_t g_mfc_uart_cfg;
 extern const sci_uart_extended_cfg_t g_mfc_uart_cfg_extend;
 
-#ifndef mfc_uart_callback
-void mfc_uart_callback(uart_callback_args_t *p_args);
+#ifndef H_EX201_UartCallback
+void H_EX201_UartCallback(uart_callback_args_t *p_args);
 #endif
 FSP_FOOTER
 #endif /* MFCTASK_H_ */

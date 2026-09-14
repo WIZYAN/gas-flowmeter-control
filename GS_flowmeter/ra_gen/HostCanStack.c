@@ -293,7 +293,7 @@ can_instance_ctrl_t g_can0_ctrl;
 const can_cfg_t g_can0_cfg =
 { .channel = 0,
   .p_bit_timing = &g_can0_bit_timing_cfg,
-  .p_callback = can_callback,
+  .p_callback = H_HostCan_Callback,
   .p_extend = &g_can0_extended_cfg,
   .p_context = NULL,
   .ipl = (12),

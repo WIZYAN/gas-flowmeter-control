@@ -115,7 +115,7 @@ const spi_cfg_t g_mfc_spi_cfg =
   .mode_fault = SPI_MODE_FAULT_ERROR_DISABLE,
   .bit_order = SPI_BIT_ORDER_MSB_FIRST, .p_transfer_tx = g_mfc_spi_P_TRANSFER_TX, .p_transfer_rx =
           g_mfc_spi_P_TRANSFER_RX,
-  .p_callback = spi_callback,
+  .p_callback = H_MFC_CAN_SpiCallback,
 
   .p_context = NULL,
   .p_extend = (void*) &g_mfc_spi_ext_cfg, };
@@ -154,7 +154,7 @@ const sci_uart_extended_cfg_t g_mfc_uart_cfg_extend =
 /** UART interface configuration */
 const uart_cfg_t g_mfc_uart_cfg =
 { .channel = 2, .data_bits = UART_DATA_BITS_8, .parity = UART_PARITY_OFF, .stop_bits = UART_STOP_BITS_1, .p_callback =
-          mfc_uart_callback,
+          H_EX201_UartCallback,
   .p_context = NULL, .p_extend = &g_mfc_uart_cfg_extend,
 #define RA_NOT_DEFINED (1)
 #if (RA_NOT_DEFINED == RA_NOT_DEFINED)

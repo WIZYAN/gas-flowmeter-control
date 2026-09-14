@@ -209,7 +209,7 @@
       <property id="module.driver.can.time_segment_1" value="module.driver.can.time_segment_1.tq4"/>
       <property id="module.driver.can.time_segment_2" value="module.driver.can.time_segment_2.tq2"/>
       <property id="module.driver.can.sync_jump_width" value="module.driver.can.sync_jump_width.tq1"/>
-      <property id="module.driver.can.p_callback" value="can_callback"/>
+      <property id="module.driver.can.p_callback" value="H_HostCan_Callback"/>
       <property id="module.driver.can.message_mode" value="module.driver.can.message_mode.overwrite"/>
       <property id="module.driver.can.global_id_mode" value="module.driver.can.global_id_mode.standard"/>
       <property id="module.driver.can.mailbox_count" value="module.driver.can.mailbox_count.32"/>
@@ -380,7 +380,7 @@
       <property id="module.driver.uart.rs485.de_polarity" value="module.driver.uart.rs485.de_polarity.high"/>
       <property id="module.driver.uart.rs485.de_port_number" value="module.driver.uart.rs485.de_port_number.PORT_DISABLE"/>
       <property id="module.driver.uart.rs485.de_pin_number" value="module.driver.uart.rs485.de_pin_number.PIN_DISABLE"/>
-      <property id="module.driver.uart.callback" value="mfc_uart_callback"/>
+      <property id="module.driver.uart.callback" value="H_EX201_UartCallback"/>
       <property id="module.driver.uart.rxi_ipl" value="board.icu.common.irq.priority10"/>
       <property id="module.driver.uart.txi_ipl" value="board.icu.common.irq.priority10"/>
       <property id="module.driver.uart.tei_ipl" value="board.icu.common.irq.priority10"/>
@@ -398,7 +398,7 @@
       <property id="module.driver.spi.clk_polarity" value="module.driver.spi.clk_polarity.clk_polarity_low"/>
       <property id="module.driver.spi.mode_fault" value="module.driver.spi.mode_fault.mode_fault_error_disable"/>
       <property id="module.driver.spi.bit_order" value="module.driver.spi.bit_order.bit_order_msb_first"/>
-      <property id="module.driver.spi.p_callback" value="spi_callback"/>
+      <property id="module.driver.spi.p_callback" value="H_MFC_CAN_SpiCallback"/>
       <property id="module.driver.spi.spi_clksyn" value="module.driver.spi.spi_clksyn.spi_operation"/>
       <property id="module.driver.spi.spi_comm" value="module.driver.spi.spi_comm.full_duplex"/>
       <property id="module.driver.spi.ssl_polarity" value="module.driver.spi.ssl_polarity.low"/>
@@ -573,10 +573,18 @@
     <symbolicName propertyId="p004.symbolic_name" value="VALP1"/>
     <symbolicName propertyId="p102.symbolic_name" value="CAN_RXD0"/>
     <symbolicName propertyId="p103.symbolic_name" value="CAN_TXD0"/>
+    <symbolicName propertyId="p108.symbolic_name" value="SWDIO"/>
+    <symbolicName propertyId="p109.symbolic_name" value="SPI1_MOSI"/>
+    <symbolicName propertyId="p110.symbolic_name" value="SPI1_MISO"/>
+    <symbolicName propertyId="p111.symbolic_name" value="SPI1_SCK"/>
+    <symbolicName propertyId="p112.symbolic_name" value="SPI1_NSS"/>
     <symbolicName propertyId="p205.symbolic_name" value="MFC_LINKOUT"/>
-    <symbolicName propertyId="p206.symbolic_name" value="FMC_LINKIN"/>
-    <symbolicName propertyId="p303.symbolic_name" value="FMC_RES2"/>
-    <symbolicName propertyId="p304.symbolic_name" value="FMC_EN2"/>
+    <symbolicName propertyId="p206.symbolic_name" value="MFC_LINKIN"/>
+    <symbolicName propertyId="p300.symbolic_name" value="SWCLK"/>
+    <symbolicName propertyId="p301.symbolic_name" value="MFC_RXD2"/>
+    <symbolicName propertyId="p302.symbolic_name" value="MFC_TXD2"/>
+    <symbolicName propertyId="p303.symbolic_name" value="MFC_RES2"/>
+    <symbolicName propertyId="p304.symbolic_name" value="MFC_EN2"/>
     <symbolicName propertyId="p400.symbolic_name" value="VAL4"/>
     <symbolicName propertyId="p401.symbolic_name" value="VAL6"/>
     <symbolicName propertyId="p402.symbolic_name" value="VAL5"/>
@@ -594,10 +602,18 @@
     <comment propertyId="p004.comment" value="VALP1"/>
     <comment propertyId="p102.comment" value="CAN_RXD0"/>
     <comment propertyId="p103.comment" value="CAN_TXD0"/>
+    <comment propertyId="p108.comment" value="SWDIO"/>
+    <comment propertyId="p109.comment" value="SPI1_MOSI"/>
+    <comment propertyId="p110.comment" value="SPI1_MISO"/>
+    <comment propertyId="p111.comment" value="SPI1_SCK"/>
+    <comment propertyId="p112.comment" value="SPI1_NSS"/>
     <comment propertyId="p205.comment" value="MFC_LINKOUT"/>
-    <comment propertyId="p206.comment" value="FMC_LINKIN"/>
-    <comment propertyId="p303.comment" value="FMC_RES2"/>
-    <comment propertyId="p304.comment" value="FMC_EN2"/>
+    <comment propertyId="p206.comment" value="MFC_LINKIN"/>
+    <comment propertyId="p300.comment" value="SWCLK"/>
+    <comment propertyId="p301.comment" value="MFC_RXD2"/>
+    <comment propertyId="p302.comment" value="MFC_TXD2"/>
+    <comment propertyId="p303.comment" value="MFC_RES2"/>
+    <comment propertyId="p304.comment" value="MFC_EN2"/>
     <comment propertyId="p400.comment" value="VAL4"/>
     <comment propertyId="p401.comment" value="VAL6"/>
     <comment propertyId="p402.comment" value="VAL5"/>
@@ -652,8 +668,8 @@
       <configSetting altId="p302.gpio_mode.gpio_mode_peripheral" configurationId="p302.gpio_mode"/>
       <configSetting altId="p303.output.low" configurationId="p303"/>
       <configSetting altId="p303.gpio_mode.gpio_mode_out.low" configurationId="p303.gpio_mode"/>
-      <configSetting altId="p304.output.low" configurationId="p304"/>
-      <configSetting altId="p304.gpio_mode.gpio_mode_out.low" configurationId="p304.gpio_mode"/>
+      <configSetting altId="p304.output.high" configurationId="p304"/>
+      <configSetting altId="p304.gpio_mode.gpio_mode_out.high" configurationId="p304.gpio_mode"/>
       <configSetting altId="p400.output.low" configurationId="p400"/>
       <configSetting altId="p400.gpio_mode.gpio_mode_out.low" configurationId="p400.gpio_mode"/>
       <configSetting altId="p401.output.low" configurationId="p401"/>

@@ -21,8 +21,8 @@ extern can_instance_ctrl_t g_can0_ctrl;
 extern const can_cfg_t g_can0_cfg;
 extern const can_extended_cfg_t g_can0_cfg_extend;
 
-#ifndef can_callback
-void can_callback(can_callback_args_t *p_args);
+#ifndef H_HostCan_Callback
+void H_HostCan_Callback(can_callback_args_t *p_args);
 #endif
 #define CAN_NO_OF_MAILBOXES_g_can0 (32)
 FSP_FOOTER

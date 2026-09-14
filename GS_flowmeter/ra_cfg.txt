@@ -108,26 +108,26 @@ FSP Configuration
       P105 43 - - - - Disabled - - "CTSU0: TS34; GPT1: GTIOCA; IRQ0: IRQ00; KINT0: KRM5; POEG0: GTETRG; SLCDC0: COM1; SPI0: SSL2" - None - -
       P106 42 - - - - Disabled - - "GPT0: GTIOCB; KINT0: KRM6; SLCDC0: COM2; SPI0: SSL3" - None - -
       P107 41 - - - - Disabled - - "GPT0: GTIOCA; KINT0: KRM7; SLCDC0: COM3" - None - -
-      P108 33 DEBUG0_SWDIO - Low - "Peripheral mode" CMOS None "DEBUG0: SWDIO; DEBUG0: TMS; GPT0: GTIOCB; OPS0: GTOULO; SCI9: CTS_RTS_SS; SPI1: SSL0" - IO - -
-      P109 34 SPI1_MOSI - Low - "Peripheral mode" CMOS None "CAN0: CTX; CGC0: CLKOUT; CTSU0: TS10; DEBUG0: SWO; DEBUG0: TDO; GPT1: GTIOCA; OPS0: GTOVUP; SCI1: SCK; SCI9: SDA; SCI9: TXD_MOSI; SLCDC0: SEG23; SPI1: MOSI" - IO - -
-      P110 35 SPI1_MISO - Low None "Peripheral mode" CMOS None "CAN0: CRX; CMP0: VCOUT; DEBUG0: TDI; GPT1: GTIOCB; IRQ0: IRQ03; OPS0: GTOVLO; SCI2: CTS_RTS_SS; SCI9: RXD_MISO; SCI9: SCL; SLCDC0: SEG24; SPI1: MISO" - IO - -
-      P111 36 SPI1_RSPCK - Low None "Peripheral mode" CMOS None "CTSU0: TS12; GPT3: GTIOCA; IRQ0: IRQ04; SCI2: SCK; SCI9: SCK; SLCDC0: CAPH; SPI1: RSPCK" - IO - -
-      P112 37 SPI1_SSL0 - Low - "Peripheral mode" CMOS None "CTSU0: TSCAP; GPT3: GTIOCB; SCI1: SCK; SCI2: SDA; SCI2: TXD_MOSI; SLCDC0: CAPL; SPI1: SSL0" - IO - -
+      P108 33 DEBUG0_SWDIO SWDIO Low - "Peripheral mode" CMOS None "DEBUG0: SWDIO; DEBUG0: TMS; GPT0: GTIOCB; OPS0: GTOULO; SCI9: CTS_RTS_SS; SPI1: SSL0" SWDIO IO - -
+      P109 34 SPI1_MOSI SPI1_MOSI Low - "Peripheral mode" CMOS None "CAN0: CTX; CGC0: CLKOUT; CTSU0: TS10; DEBUG0: SWO; DEBUG0: TDO; GPT1: GTIOCA; OPS0: GTOVUP; SCI1: SCK; SCI9: SDA; SCI9: TXD_MOSI; SLCDC0: SEG23; SPI1: MOSI" SPI1_MOSI IO - -
+      P110 35 SPI1_MISO SPI1_MISO Low None "Peripheral mode" CMOS None "CAN0: CRX; CMP0: VCOUT; DEBUG0: TDI; GPT1: GTIOCB; IRQ0: IRQ03; OPS0: GTOVLO; SCI2: CTS_RTS_SS; SCI9: RXD_MISO; SCI9: SCL; SLCDC0: SEG24; SPI1: MISO" SPI1_MISO IO - -
+      P111 36 SPI1_RSPCK SPI1_SCK Low None "Peripheral mode" CMOS None "CTSU0: TS12; GPT3: GTIOCA; IRQ0: IRQ04; SCI2: SCK; SCI9: SCK; SLCDC0: CAPH; SPI1: RSPCK" SPI1_SCK IO - -
+      P112 37 SPI1_SSL0 SPI1_NSS Low - "Peripheral mode" CMOS None "CTSU0: TSCAP; GPT3: GTIOCB; SCI1: SCK; SCI2: SDA; SCI2: TXD_MOSI; SLCDC0: CAPL; SPI1: SSL0" SPI1_NSS IO - -
       P113 38 - - - - Disabled - - "CTSU0: TS27; GPT2: GTIOCA; SLCDC0: COM4; SLCDC0: SEG00" - None - -
       P200 27 - - - - Disabled - - "IRQ0: NMI" - None - -
       P201 26 - - - - Disabled - - - - None - -
       P204 24 - - - - Disabled - - "AGT1: AGTIO; CAC0: CACREF; CTSU0: TS00; GPT4: GTIOCB; IIC0: SCL; OPS0: GTIW; SCI0: SCK; SCI9: SCK; SLCDC0: SEG14; SPI1: RSPCK; USBFS0: OVRCURB" - None - -
       P205 23 GPIO MFC_LINKOUT Low None "Output mode (Initial Low)" CMOS None "AGT1: AGTO; CGC0: CLKOUT; CTSU0: TSCAP; GPT4: GTIOCA; IIC1: SCL; IRQ0: IRQ01; OPS0: GTIV; SCI0: SDA; SCI0: TXD_MOSI; SCI9: CTS_RTS_SS; SLCDC0: SEG13; SPI1: SSL0; USBFS0: OVRCURA" MFC_LINKOUT IO - -
-      P206 22 GPIO FMC_LINKIN Low None "Output mode (Initial Low)" CMOS None "CTSU0: TS01; IIC1: SDA; IRQ0: IRQ00; OPS0: GTIU; SCI0: RXD_MISO; SCI0: SCL; SLCDC0: SEG12; SPI1: SSL1; USBFS0: VBUSEN" FMC_LINKIN IO - -
+      P206 22 GPIO MFC_LINKIN Low None "Output mode (Initial Low)" CMOS None "CTSU0: TS01; IIC1: SDA; IRQ0: IRQ00; OPS0: GTIU; SCI0: RXD_MISO; SCI0: SCL; SLCDC0: SEG12; SPI1: SSL1; USBFS0: VBUSEN" MFC_LINKIN IO - -
       P212 10 - - - - Disabled - - "AGT1: AGTEE; CGC0: EXTAL; GPT0: GTIOCB; IRQ0: IRQ03; POEG1: GTETRG; SCI1: RXD_MISO; SCI1: SCL" - None - -
       P213 9 - - - - Disabled - - "CGC0: XTAL; GPT0: GTIOCA; IRQ0: IRQ02; POEG0: GTETRG; SCI1: SDA; SCI1: TXD_MOSI" - None - -
       P214 7 - - - - Disabled - - "CGC0: XCOUT" - None - -
       P215 6 - - - - Disabled - - "CGC0: XCIN" - None - -
-      P300 32 DEBUG0_SWCLK - Low - "Peripheral mode" CMOS None "DEBUG0: SWCLK; DEBUG0: TCK; GPT0: GTIOCA; OPS0: GTOUUP; SPI1: SSL1" - IO - -
-      P301 31 SCI2_RXD_MISO - Low None "Peripheral mode" CMOS None "AGT0: AGTIO; CTSU0: TS09; GPT4: GTIOCB; IRQ0: IRQ06; OPS0: GTOULO; SCI2: RXD_MISO; SCI2: SCL; SCI9: CTS_RTS_SS; SLCDC0: COM5; SLCDC0: SEG01; SPI1: SSL2" - IO - -
-      P302 30 SCI2_TXD_MOSI - Low None "Peripheral mode" CMOS None "CTSU0: TS08; GPT4: GTIOCA; IRQ0: IRQ05; OPS0: GTOUUP; SCI2: SDA; SCI2: TXD_MOSI; SLCDC0: COM6; SLCDC0: SEG02; SPI1: SSL3" - IO - -
-      P303 29 GPIO FMC_RES2 Low - "Output mode (Initial Low)" CMOS None "CTSU0: TS02; GPT7: GTIOCB; SLCDC0: COM7; SLCDC0: SEG03" FMC_RES2 IO - -
-      P304 28 GPIO FMC_EN2 Low None "Output mode (Initial Low)" CMOS None "CTSU0: TS11; GPT7: GTIOCA; IRQ0: IRQ09; SLCDC0: SEG20" FMC_EN2 IO - -
+      P300 32 DEBUG0_SWCLK SWCLK Low - "Peripheral mode" CMOS None "DEBUG0: SWCLK; DEBUG0: TCK; GPT0: GTIOCA; OPS0: GTOUUP; SPI1: SSL1" SWCLK IO - -
+      P301 31 SCI2_RXD_MISO MFC_RXD2 Low None "Peripheral mode" CMOS None "AGT0: AGTIO; CTSU0: TS09; GPT4: GTIOCB; IRQ0: IRQ06; OPS0: GTOULO; SCI2: RXD_MISO; SCI2: SCL; SCI9: CTS_RTS_SS; SLCDC0: COM5; SLCDC0: SEG01; SPI1: SSL2" MFC_RXD2 IO - -
+      P302 30 SCI2_TXD_MOSI MFC_TXD2 Low None "Peripheral mode" CMOS None "CTSU0: TS08; GPT4: GTIOCA; IRQ0: IRQ05; OPS0: GTOUUP; SCI2: SDA; SCI2: TXD_MOSI; SLCDC0: COM6; SLCDC0: SEG02; SPI1: SSL3" MFC_TXD2 IO - -
+      P303 29 GPIO MFC_RES2 Low - "Output mode (Initial Low)" CMOS None "CTSU0: TS02; GPT7: GTIOCB; SLCDC0: COM7; SLCDC0: SEG03" MFC_RES2 IO - -
+      P304 28 GPIO MFC_EN2 High None "Output mode (Initial High)" CMOS None "CTSU0: TS11; GPT7: GTIOCA; IRQ0: IRQ09; SLCDC0: SEG20" MFC_EN2 IO - -
       P400 1 GPIO VAL4 Low None "Output mode (Initial Low)" CMOS None "AGT1: AGTIO; CAC0: CACREF; CTSU0: TS20; GPT6: GTIOCA; IIC0: SCL; IRQ0: IRQ00; SCI0: SCK; SCI1: SCK; SLCDC0: SEG04; SSI: AUDIO_CLK" VAL4 IO - -
       P401 2 GPIO VAL6 Low None "Peripheral mode" CMOS None "CAN0: CTX; CTSU0: TS19; GPT6: GTIOCB; IIC0: SDA; IRQ0: IRQ05; POEG0: GTETRG; SCI0: CTS_RTS_SS; SCI1: SDA; SCI1: TXD_MOSI; SLCDC0: SEG05" VAL6 IO - -
       P402 3 GPIO VAL5 Low None "Peripheral mode" CMOS None "AGT0: AGTIO; AGT1: AGTIO; CAN0: CRX; CTSU0: TS18; IRQ0: IRQ04; RTC0: RTCIC0; SCI1: RXD_MISO; SCI1: SCL; SLCDC0: SEG06" VAL5 IO - -
@@ -279,7 +279,7 @@ FSP Configuration
       Baud Rate Settings: Override Auto-generated Settings: Time Segment 1: 4 Time Quanta
       Baud Rate Settings: Override Auto-generated Settings: Time Segment 2: 2 Time Quanta
       Baud Rate Settings: Override Auto-generated Settings: Synchronization Jump Width: 1 Time Quanta
-      Interrupts: Callback: can_callback
+      Interrupts: Callback: H_HostCan_Callback
       General: Overwrite/Overrrun Mode: Overwrite Mode
       General: Global ID Mode: Standard ID Mode
       General: Number of Mailboxes: 32 Mailboxes
@@ -459,7 +459,7 @@ FSP Configuration
       Extra: RS-485: DE Pin Polarity: Active High
       Extra: RS-485: DE Port Number: Disabled
       Extra: RS-485: DE Pin Number: Disabled
-      Interrupts: Callback: mfc_uart_callback
+      Interrupts: Callback: H_EX201_UartCallback
       Interrupts: Receive Interrupt Priority: Priority 10
       Interrupts: Transmit Data Empty Interrupt Priority: Priority 10
       Interrupts: Transmit End Interrupt Priority: Priority 10
@@ -477,7 +477,7 @@ FSP Configuration
       Clock Polarity: Low when idle
       Mode Fault Error: Disable
       Bit Order: MSB First
-      Callback: spi_callback
+      Callback: H_MFC_CAN_SpiCallback
       SPI Mode: SPI Operation
       Full or Transmit Only Mode: Full Duplex
       Slave Select Polarity: Active Low
