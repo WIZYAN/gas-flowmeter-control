@@ -42,12 +42,23 @@ typedef enum
     A_EX201_RESULT_RECOVERY_ERROR      // 通信异常恢复失败
 } A_EX201_Result;
 
+typedef enum
+{
+    A_EX201_OPERATION_NONE = 0,        // 当前没有业务操作
+    A_EX201_OPERATION_GENERIC,         // 通用原始请求
+    A_EX201_OPERATION_SET_FLOW,        // 设置数字流量尾数
+    A_EX201_OPERATION_READ_SET_FLOW,   // 读取数字设定流量尾数
+    A_EX201_OPERATION_READ_ACTUAL_FLOW, // 读取瞬时流量尾数
+    A_EX201_OPERATION_CLOSE_FLOW       // 数字阀门全关闭
+} A_EX201_Operation;
+
 typedef struct
 {
     F_EX201_Context function_context;                              // EX-201S功能层上下文
     F_EX201_Response response;                                     // 已解析的当前响应
     A_EX201_State state;                                           // 当前事务状态
     A_EX201_Result result;                                         // 最近一次事务结果
+    A_EX201_Operation operation;                                   // 当前业务操作类型
     TickType_t state_start_tick;                                   // 当前等待状态起始节拍
     uint8_t request_frame[EX201_MAX_REQUEST_FRAME_LENGTH];          // 当前请求帧缓冲区
     uint8_t response_frame[EX201_MAX_RESPONSE_FRAME_LENGTH];        // 当前响应帧缓冲区
@@ -83,6 +94,56 @@ A_EX201_Result A_EX201_StartRequest(
     TickType_t current_tick);
 
 /*
+ * 说明：使用WSFD指令设置数字流量尾数
+ * 输入：p_context     EX-201S事务上下文
+ *      address       流量计通信地址
+ *      flow_mantissa 四位流量尾数，且不得超过设备满刻度尾数
+ *      current_tick  当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_SetFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    uint16_t flow_mantissa,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RSFD指令读取数字设定流量尾数
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadSetFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RCFR指令读取带符号的瞬时流量尾数
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadActualFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用WVSS指令请求数字阀门全关闭
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_CloseFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
  * 说明：推进EX-201S非阻塞事务状态机，必须由MfcTask周期调用
  * 输入：p_context    EX-201S事务上下文
  *      current_tick 当前FreeRTOS系统节拍
@@ -108,5 +169,22 @@ uint32_t A_EX201_IsBusy(A_EX201_Context *p_context);
 A_EX201_Result A_EX201_GetResult(
     A_EX201_Context *p_context,
     F_EX201_Response *p_response);
+
+/*
+ * 说明：读取RSFD或RCFR业务操作返回的流量尾数并恢复空闲
+ * 输入：p_context       EX-201S事务上下文
+ *      p_flow_mantissa 输出的有符号流量尾数
+ * 输出：A_EX201_Result 事务及流量数据解析结果
+ */
+A_EX201_Result A_EX201_GetFlowResult(
+    A_EX201_Context *p_context,
+    int32_t *p_flow_mantissa);
+
+/*
+ * 说明：读取WSFD或WVSS业务操作的执行结果并恢复空闲
+ * 输入：p_context EX-201S事务上下文
+ * 输出：A_EX201_Result 事务执行结果
+ */
+A_EX201_Result A_EX201_GetCommandResult(A_EX201_Context *p_context);
 
 #endif /* MFC_A_EX201_H_ */

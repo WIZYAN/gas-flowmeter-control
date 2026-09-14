@@ -342,6 +342,91 @@ F_EX201_ProtocolResult F_EX201_DecodeResponse(
 }
 
 /*
+ * 说明：将流量尾数转换为EX-201S使用的四位十进制ASCII数据
+ * 输入：flow_mantissa 流量尾数，范围0000～9999
+ *      p_data        输出的四字节ASCII数据
+ * 输出：F_EX201_ProtocolResult 转换结果
+ */
+F_EX201_ProtocolResult F_EX201_EncodeFlowValue(
+    uint16_t flow_mantissa,
+    uint8_t p_data[EX201_FLOW_MANTISSA_LENGTH])
+{
+    if ((p_data == NULL) || (flow_mantissa > EX201_FLOW_MANTISSA_MAX))
+    {
+        return F_EX201_PROTOCOL_RESULT_INVALID_ARGUMENT;
+    }
+
+    p_data[0] = (uint8_t) ('0' + ((flow_mantissa / 1000U) % 10U)); // 流量尾数千位
+    p_data[1] = (uint8_t) ('0' + ((flow_mantissa / 100U) % 10U));  // 流量尾数百位
+    p_data[2] = (uint8_t) ('0' + ((flow_mantissa / 10U) % 10U));   // 流量尾数十位
+    p_data[3] = (uint8_t) ('0' + (flow_mantissa % 10U));           // 流量尾数个位
+
+    return F_EX201_PROTOCOL_RESULT_OK;
+}
+
+/*
+ * 说明：将EX-201S流量ASCII数据转换为有符号流量尾数
+ * 输入：p_data          四位无符号数据或符号加四位瞬时流量数据
+ *      data_length     数据长度
+ *      p_flow_mantissa 输出的有符号流量尾数
+ * 输出：F_EX201_ProtocolResult 转换结果
+ */
+F_EX201_ProtocolResult F_EX201_DecodeFlowValue(
+    const uint8_t *p_data,
+    size_t data_length,
+    int32_t *p_flow_mantissa)
+{
+    size_t data_index = 0U;     // 当前十进制字符索引
+    size_t digit_start = 0U;    // 十进制数字起始位置
+    uint32_t absolute_value = 0U; // 流量尾数绝对值
+    int32_t sign = 1;           // 流量尾数符号
+
+    if ((p_data == NULL) || (p_flow_mantissa == NULL))
+    {
+        return F_EX201_PROTOCOL_RESULT_INVALID_ARGUMENT;
+    }
+
+    if (EX201_SIGNED_FLOW_LENGTH == data_length)
+    {
+        if ((uint8_t) '+' == p_data[0])
+        {
+            sign = 1;
+        }
+        else if ((uint8_t) '-' == p_data[0])
+        {
+            sign = -1;
+        }
+        else
+        {
+            return F_EX201_PROTOCOL_RESULT_INVALID_FRAME;
+        }
+
+        digit_start = 1U;
+    }
+    else if (EX201_FLOW_MANTISSA_LENGTH != data_length)
+    {
+        return F_EX201_PROTOCOL_RESULT_INVALID_FRAME;
+    }
+
+    for (data_index = digit_start; data_index < data_length; data_index++)
+    {
+        if ((p_data[data_index] < (uint8_t) '0') ||
+            (p_data[data_index] > (uint8_t) '9'))
+        {
+            return F_EX201_PROTOCOL_RESULT_INVALID_FRAME;
+        }
+
+        absolute_value =
+            (absolute_value * 10U) +
+            (uint32_t) (p_data[data_index] - (uint8_t) '0');
+    }
+
+    *p_flow_mantissa = (int32_t) absolute_value * sign;
+
+    return F_EX201_PROTOCOL_RESULT_OK;
+}
+
+/*
  * 说明：将硬件层结果转换为EX-201S功能层传输结果
  * 输入：hardware_result 硬件层处理结果
  * 输出：F_EX201_TransportResult 功能层传输结果

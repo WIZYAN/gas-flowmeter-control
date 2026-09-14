@@ -10,6 +10,12 @@
 #define A_EX201_TX_TIMEOUT_TICKS       pdMS_TO_TICKS(100U) // 9600 bit/s最大请求帧的发送超时初值
 #define A_EX201_RESPONSE_TIMEOUT_TICKS pdMS_TO_TICKS(500U) // EX-201S响应超时初值，实板联调后调整
 
+static const char s_set_flow_command[EX201_COMMAND_LENGTH] = {'W', 'S', 'F', 'D'};         // 设置数字流量尾数指令
+static const char s_read_set_flow_command[EX201_COMMAND_LENGTH] = {'R', 'S', 'F', 'D'};    // 读取数字设定流量尾数指令
+static const char s_read_actual_flow_command[EX201_COMMAND_LENGTH] = {'R', 'C', 'F', 'R'}; // 读取瞬时流量尾数指令
+static const char s_close_flow_command[EX201_COMMAND_LENGTH] = {'W', 'V', 'S', 'S'};       // 设置数字阀门状态指令
+static const uint8_t s_close_flow_data[] = {'2'};                                           // 数字阀门全关闭参数
+
 /*
  * 说明：判断当前等待状态是否已经超时，减法写法允许系统节拍自然回绕
  * 输入：current_tick 当前系统节拍
@@ -145,6 +151,7 @@ A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context)
 
     p_context->state = A_EX201_STATE_IDLE;
     p_context->result = A_EX201_RESULT_NO_RESULT;
+    p_context->operation = A_EX201_OPERATION_NONE;
     p_context->state_start_tick = 0U;
     p_context->expected_address = 0U;
     p_context->request_sequence = 0U;
@@ -180,7 +187,7 @@ A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context)
  * 输出：A_EX201_Result 请求启动结果
  */
 A_EX201_Result A_EX201_StartRequest(
-    A_EX201_Context *p_context,
+    A_EX201_Context *p_context,//operation就是当前提交的任务
     uint16_t address,
     const char command[EX201_COMMAND_LENGTH],
     const uint8_t *p_data,
@@ -250,10 +257,149 @@ A_EX201_Result A_EX201_StartRequest(
 
     p_context->request_sequence++;
     p_context->result = A_EX201_RESULT_NO_RESULT;
+    p_context->operation = A_EX201_OPERATION_GENERIC;
     p_context->state_start_tick = current_tick;
     p_context->state = A_EX201_STATE_WAIT_TX_COMPLETE;
 
     return A_EX201_RESULT_OK;
+}
+
+/*
+ * 说明：启动指定的EX-201S业务操作
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      command      四字节EX-201S指令
+ *      p_data       指令数据，data_length为0时允许为NULL
+ *      data_length  指令数据长度
+ *      current_tick 当前FreeRTOS系统节拍
+ *      operation    业务操作类型
+ * 输出：A_EX201_Result 请求启动结果
+ */
+static A_EX201_Result A_EX201_StartOperation(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    const char command[EX201_COMMAND_LENGTH],
+    const uint8_t *p_data,
+    size_t data_length,
+    TickType_t current_tick,
+    A_EX201_Operation operation)
+{
+    A_EX201_Result start_result = A_EX201_RESULT_OK; // 请求启动结果
+
+    start_result = A_EX201_StartRequest(
+        p_context,
+        address,
+        command,
+        p_data,
+        data_length,
+        current_tick);
+
+    if (A_EX201_RESULT_OK == start_result)
+    {
+        p_context->operation = operation;
+    }
+
+    return start_result;
+}
+
+/*
+ * 说明：使用WSFD指令设置数字流量尾数
+ * 输入：p_context     EX-201S事务上下文
+ *      address       流量计通信地址
+ *      flow_mantissa 四位流量尾数，且不得超过设备满刻度尾数
+ *      current_tick  当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_SetFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    uint16_t flow_mantissa,
+    TickType_t current_tick)
+{
+    uint8_t flow_data[EX201_FLOW_MANTISSA_LENGTH] = {0};           // WSFD四位流量尾数数据
+    F_EX201_ProtocolResult encode_result = F_EX201_PROTOCOL_RESULT_OK; // 流量尾数编码结果
+
+    encode_result = F_EX201_EncodeFlowValue(flow_mantissa, flow_data);
+
+    if (F_EX201_PROTOCOL_RESULT_OK != encode_result)
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_set_flow_command,
+        flow_data,
+        sizeof(flow_data),
+        current_tick,
+        A_EX201_OPERATION_SET_FLOW);
+}
+
+/*
+ * 说明：使用RSFD指令读取数字设定流量尾数
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadSetFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_set_flow_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_SET_FLOW);
+}
+
+/*
+ * 说明：使用RCFR指令读取带符号的瞬时流量尾数
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadActualFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_actual_flow_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_ACTUAL_FLOW);
+}
+
+/*
+ * 说明：使用WVSS指令请求数字阀门全关闭
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_CloseFlow(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_close_flow_command,
+        s_close_flow_data,
+        sizeof(s_close_flow_data),
+        current_tick,
+        A_EX201_OPERATION_CLOSE_FLOW);
 }
 
 /*
@@ -386,6 +532,98 @@ A_EX201_Result A_EX201_GetResult(
 
     p_context->state = A_EX201_STATE_IDLE;
     p_context->result = A_EX201_RESULT_NO_RESULT;
+    p_context->operation = A_EX201_OPERATION_NONE;
 
     return result;
+}
+
+/*
+ * 说明：读取RSFD或RCFR业务操作返回的流量尾数并恢复空闲
+ * 输入：p_context       EX-201S事务上下文
+ *      p_flow_mantissa 输出的有符号流量尾数
+ * 输出：A_EX201_Result 事务及流量数据解析结果
+ */
+A_EX201_Result A_EX201_GetFlowResult(
+    A_EX201_Context *p_context,
+    int32_t *p_flow_mantissa)
+{
+    F_EX201_Response g_response = {0};                             // 当前EX-201S响应
+    A_EX201_Result transaction_result = A_EX201_RESULT_NO_RESULT; // 当前事务结果
+    F_EX201_ProtocolResult decode_result = F_EX201_PROTOCOL_RESULT_OK; // 流量数据解析结果
+
+    if ((p_context == NULL) || (p_flow_mantissa == NULL))
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+
+    if (0U == p_context->initialized)
+    {
+        return A_EX201_RESULT_NOT_INITIALIZED;
+    }
+
+    if ((A_EX201_OPERATION_READ_SET_FLOW != p_context->operation) &&
+        (A_EX201_OPERATION_READ_ACTUAL_FLOW != p_context->operation))
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+
+    transaction_result = A_EX201_GetResult(p_context, &g_response);
+
+    if (A_EX201_RESULT_OK != transaction_result)
+    {
+        return transaction_result;
+    }
+
+    decode_result = F_EX201_DecodeFlowValue(
+        g_response.data,
+        (size_t) g_response.data_length,
+        p_flow_mantissa);
+
+    if (F_EX201_PROTOCOL_RESULT_OK != decode_result)
+    {
+        return A_EX201_RESULT_PROTOCOL_ERROR;
+    }
+
+    return A_EX201_RESULT_OK;
+}
+
+/*
+ * 说明：读取WSFD或WVSS业务操作的执行结果并恢复空闲
+ * 输入：p_context EX-201S事务上下文
+ * 输出：A_EX201_Result 事务执行结果
+ */
+A_EX201_Result A_EX201_GetCommandResult(A_EX201_Context *p_context)
+{
+    F_EX201_Response g_response = {0};                             // 当前EX-201S响应
+    A_EX201_Result transaction_result = A_EX201_RESULT_NO_RESULT; // 当前事务结果
+
+    if (p_context == NULL)
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+
+    if (0U == p_context->initialized)
+    {
+        return A_EX201_RESULT_NOT_INITIALIZED;
+    }
+
+    if ((A_EX201_OPERATION_SET_FLOW != p_context->operation) &&
+        (A_EX201_OPERATION_CLOSE_FLOW != p_context->operation))
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+
+    transaction_result = A_EX201_GetResult(p_context, &g_response);
+
+    if (A_EX201_RESULT_OK != transaction_result)
+    {
+        return transaction_result;
+    }
+
+    if (0U != g_response.data_length)
+    {
+        return A_EX201_RESULT_PROTOCOL_ERROR;
+    }
+
+    return A_EX201_RESULT_OK;
 }

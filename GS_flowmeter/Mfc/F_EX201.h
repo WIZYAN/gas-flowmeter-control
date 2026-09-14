@@ -22,6 +22,9 @@
 #define EX201_RESPONSE_CODE_LENGTH     (2U)  // 响应结果长度，2字节
 #define EX201_CHECKSUM_LENGTH          (2U)  // 校验和长度，2字节
 #define EX201_MAX_DATA_LENGTH          (32U) // 软件允许的最大数据长度
+#define EX201_FLOW_MANTISSA_LENGTH     (4U)  // 流量尾数固定长度，4个十进制字符
+#define EX201_SIGNED_FLOW_LENGTH       (5U)  // 瞬时流量长度，符号加4个十进制字符
+#define EX201_FLOW_MANTISSA_MAX        (9999U) // 流量尾数允许的最大值
 
 #define EX201_ADDRESS_MIN              (1U)   // 协议地址字段允许的最小值
 #define EX201_ADDRESS_MAX              (999U) // 协议地址字段允许的最大值
@@ -114,6 +117,28 @@ F_EX201_ProtocolResult F_EX201_DecodeResponse(
     const uint8_t *p_frame,
     size_t frame_length,
     F_EX201_Response *p_response);
+
+/*
+ * 说明：将流量尾数转换为EX-201S使用的四位十进制ASCII数据
+ * 输入：flow_mantissa 流量尾数，范围0000～9999
+ *      p_data        输出的四字节ASCII数据
+ * 输出：F_EX201_ProtocolResult 转换结果
+ */
+F_EX201_ProtocolResult F_EX201_EncodeFlowValue(
+    uint16_t flow_mantissa,
+    uint8_t p_data[EX201_FLOW_MANTISSA_LENGTH]);
+
+/*
+ * 说明：将EX-201S流量ASCII数据转换为有符号流量尾数
+ * 输入：p_data         四位无符号数据或符号加四位瞬时流量数据
+ *      data_length    数据长度
+ *      p_flow_mantissa 输出的有符号流量尾数
+ * 输出：F_EX201_ProtocolResult 转换结果
+ */
+F_EX201_ProtocolResult F_EX201_DecodeFlowValue(
+    const uint8_t *p_data,
+    size_t data_length,
+    int32_t *p_flow_mantissa);
 
 /*
  * 说明：通过硬件层异步发送一帧EX-201S数据

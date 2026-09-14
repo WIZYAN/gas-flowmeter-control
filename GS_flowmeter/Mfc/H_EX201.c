@@ -166,7 +166,7 @@ H_EX201_Result H_EX201_Send(
         error = g_mfc_uart.p_api->write(
             g_mfc_uart.p_ctrl,
             p_context->transmit_buffer,
-            (uint32_t) data_length);
+            (uint32_t) data_length);//*********通过串口发送数据*******
     }
 
     if (FSP_SUCCESS != error)
