@@ -35,207 +35,207 @@ can_bit_timing_cfg_t g_can0_bit_timing_cfg =
 #endif
 
 uint32_t g_can0_mailbox_mask[CAN_NO_OF_MAILBOXES_g_can0 / 4] =
-{ 0x1FFFFFFF,
+{ 0x00F80000,
 #if CAN_NO_OF_MAILBOXES_g_can0 > 4
-0x1FFFFFFF,
+0x00F80000,
 #endif
 #if CAN_NO_OF_MAILBOXES_g_can0 > 8
-0x1FFFFFFF,
-0x1FFFFFFF,
+0x00F80000,
+0x00F80000,
 #endif
 #if CAN_NO_OF_MAILBOXES_g_can0 > 16
-0x1FFFFFFF,
-0x1FFFFFFF,
+0x00F80000,
+0x00F80000,
 #endif
 #if CAN_NO_OF_MAILBOXES_g_can0 > 24
-0x1FFFFFFF,
-0x1FFFFFFF,
+0x00F80000,
+0x00F80000,
 #endif
         };
 
 can_mailbox_t g_can0_mailbox[CAN_NO_OF_MAILBOXES_g_can0] =
 {
-{ .mailbox_id = 0, .id_mode = CAN_ID_MODE_STANDARD, .mailbox_type = CAN_MAILBOX_TRANSMIT, .frame_type =
-          CAN_FRAME_TYPE_REMOTE },
-  { .mailbox_id = 1, .id_mode = CAN_ID_MODE_STANDARD, .mailbox_type = CAN_MAILBOX_RECEIVE, .frame_type =
+{ .mailbox_id = 0, .id_mode = CAN_ID_MODE_EXTENDED, .mailbox_type = CAN_MAILBOX_TRANSMIT, .frame_type =
+          CAN_FRAME_TYPE_DATA },
+  { .mailbox_id = 0x00780000, .id_mode = CAN_ID_MODE_EXTENDED, .mailbox_type = CAN_MAILBOX_RECEIVE, .frame_type =
             CAN_FRAME_TYPE_DATA },
-  { .mailbox_id = 2, .id_mode = CAN_ID_MODE_STANDARD, .mailbox_type = CAN_MAILBOX_RECEIVE, .frame_type =
+  { .mailbox_id = 0x00780000, .id_mode = CAN_ID_MODE_EXTENDED, .mailbox_type = CAN_MAILBOX_RECEIVE, .frame_type =
             CAN_FRAME_TYPE_DATA, },
-  { .mailbox_id = 3, .id_mode = CAN_ID_MODE_STANDARD, .mailbox_type = CAN_MAILBOX_RECEIVE, .frame_type =
+  { .mailbox_id = 0x00780000, .id_mode = CAN_ID_MODE_EXTENDED, .mailbox_type = CAN_MAILBOX_RECEIVE, .frame_type =
             CAN_FRAME_TYPE_DATA },
 #if CAN_NO_OF_MAILBOXES_g_can0 > 4
     {
-        .mailbox_id              =  4,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  5,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  6,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  7,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
 #endif
 #if CAN_NO_OF_MAILBOXES_g_can0 > 8
     {
-        .mailbox_id              =  8,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  9,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  10,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  11,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  12,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA,
     },
     {
-        .mailbox_id              =  13,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  14,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  15,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
 #endif
 #if CAN_NO_OF_MAILBOXES_g_can0 > 16
     {
-        .mailbox_id              =  16,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
 
     {
-        .mailbox_id              =  17,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  18,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  19,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  20,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  21,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  22,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA,
     },
     {
-        .mailbox_id              =  23,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
 #endif
 #if CAN_NO_OF_MAILBOXES_g_can0 > 24
     {
-        .mailbox_id              =  24,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  25,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  26,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  27,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  28,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  29,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  30,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     },
     {
-        .mailbox_id              =  31,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .mailbox_id              =  0x00780000,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
         .frame_type              =  CAN_FRAME_TYPE_DATA
     }
@@ -258,17 +258,17 @@ can_rx_fifo_cfg_t g_can0_rx_fifo_cfg =
     .rx_fifo_id1 =
     {
         .mailbox_id              =  0,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
-        .frame_type              =  CAN_FRAME_TYPE_REMOTE
+        .frame_type              =  CAN_FRAME_TYPE_DATA
     },
 
     .rx_fifo_id2 =
     {
         .mailbox_id              =  0,
-        .id_mode                 =  CAN_ID_MODE_STANDARD,
+        .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
-        .frame_type              =  CAN_FRAME_TYPE_REMOTE
+        .frame_type              =  CAN_FRAME_TYPE_DATA
     },
 };
 #endif
@@ -277,7 +277,7 @@ const can_extended_cfg_t g_can0_extended_cfg =
 { .clock_source = CAN_CLOCK_SOURCE_CANMCLK,
   .p_mailbox_mask = g_can0_mailbox_mask,
   .p_mailbox = g_can0_mailbox,
-  .global_id_mode = CAN_GLOBAL_ID_MODE_STANDARD,
+  .global_id_mode = CAN_GLOBAL_ID_MODE_EXTENDED,
   .mailbox_count = CAN_NO_OF_MAILBOXES_g_can0,
   .message_mode = CAN_MESSAGE_MODE_OVERWRITE,
 #if CAN_CFG_FIFO_SUPPORT
