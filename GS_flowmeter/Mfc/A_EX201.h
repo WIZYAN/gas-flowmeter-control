@@ -15,6 +15,18 @@
 
 #include "F_EX201.h"
 
+#define A_EX201_DEVICE_INFO_FULL_SCALE_VALID    (1UL << 0U) // 满刻度流量尾数有效
+#define A_EX201_DEVICE_INFO_DECIMAL_VALID       (1UL << 1U) // 流量小数位有效
+#define A_EX201_DEVICE_INFO_UNIT_VALID          (1UL << 2U) // 流量单位有效
+#define A_EX201_DEVICE_INFO_SOURCE_VALID        (1UL << 3U) // 流量设定来源有效
+#define A_EX201_DEVICE_INFO_VALVE_SETTING_VALID (1UL << 4U) // 数字阀门设定有效
+#define A_EX201_DEVICE_INFO_VALVE_STATE_VALID   (1UL << 5U) // 当前阀门状态有效
+#define A_EX201_DEVICE_INFO_ALARM_VALID         (1UL << 6U) // 报警状态有效
+
+#define A_EX201_ALARM_SENSOR_ERROR (1U << 0U) // 传感器异常
+#define A_EX201_ALARM_VALVE_HEAT   (1U << 1U) // 阀门过热
+#define A_EX201_ALARM_MEMORY_ERROR (1U << 2U) // 设定值存储回路异常
+
 typedef enum
 {
     A_EX201_STATE_IDLE = 0,          // 空闲，可以启动新事务
@@ -44,13 +56,59 @@ typedef enum
 
 typedef enum
 {
+    A_EX201_FLOW_UNIT_CC = 0, // 流量单位为cc
+    A_EX201_FLOW_UNIT_LITER   // 流量单位为L
+} A_EX201_FlowUnit;
+
+typedef enum
+{
+    A_EX201_FLOW_SOURCE_DIGITAL = 0, // 数字通信设定流量
+    A_EX201_FLOW_SOURCE_ANALOG       // 模拟输入设定流量
+} A_EX201_FlowSource;
+
+typedef enum
+{
+    A_EX201_VALVE_SETTING_FULL_OPEN = 0, // 数字设定为全打开
+    A_EX201_VALVE_SETTING_CONTROL,       // 数字设定为调节控制
+    A_EX201_VALVE_SETTING_FULL_CLOSE     // 数字设定为全关闭
+} A_EX201_ValveSetting;
+
+typedef enum
+{
+    A_EX201_VALVE_STATE_FULL_OPEN = 0, // 当前阀门全打开
+    A_EX201_VALVE_STATE_CONTROL,       // 当前阀门处于调节控制
+    A_EX201_VALVE_STATE_FULL_CLOSE,    // 当前阀门全关闭
+    A_EX201_VALVE_STATE_HALF_OPEN      // 当前阀门开度为50%
+} A_EX201_ValveState;
+
+typedef enum
+{
     A_EX201_OPERATION_NONE = 0,        // 当前没有业务操作
     A_EX201_OPERATION_GENERIC,         // 通用原始请求
     A_EX201_OPERATION_SET_FLOW,        // 设置数字流量尾数
     A_EX201_OPERATION_READ_SET_FLOW,   // 读取数字设定流量尾数
     A_EX201_OPERATION_READ_ACTUAL_FLOW, // 读取瞬时流量尾数
-    A_EX201_OPERATION_CLOSE_FLOW       // 数字阀门全关闭
+    A_EX201_OPERATION_CLOSE_FLOW,      // 数字阀门全关闭
+    A_EX201_OPERATION_READ_FULL_SCALE, // 读取满刻度流量尾数
+    A_EX201_OPERATION_READ_DECIMAL,    // 读取流量小数位
+    A_EX201_OPERATION_READ_UNIT,       // 读取流量单位
+    A_EX201_OPERATION_READ_SOURCE,     // 读取流量设定来源
+    A_EX201_OPERATION_READ_VALVE_SETTING, // 读取数字阀门设定
+    A_EX201_OPERATION_READ_VALVE_STATE,   // 读取当前阀门状态
+    A_EX201_OPERATION_READ_ALARM          // 读取报警状态
 } A_EX201_Operation;
+
+typedef struct
+{
+    uint32_t valid_flags;                    // 已成功读取的参数有效标志
+    uint16_t full_scale_mantissa;            // 满刻度流量尾数，范围0001～9999
+    uint8_t decimal_places;                  // 流量小数位，范围0～3
+    A_EX201_FlowUnit flow_unit;              // 流量单位
+    A_EX201_FlowSource flow_source;          // 流量设定来源
+    A_EX201_ValveSetting valve_setting;      // 数字阀门设定
+    A_EX201_ValveState valve_state;          // 当前实际阀门状态
+    uint8_t alarm_state;                     // 报警位组合，范围0～7
+} A_EX201_DeviceInfo;
 
 typedef struct
 {
@@ -144,6 +202,90 @@ A_EX201_Result A_EX201_CloseFlow(
     TickType_t current_tick);
 
 /*
+ * 说明：使用RMFS指令读取满刻度流量尾数
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadFullScale(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RDPP指令读取流量小数位
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadDecimalPlaces(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RFRU指令读取流量单位
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadFlowUnit(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RFSM指令读取流量设定来源
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadFlowSource(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RVSS指令读取数字阀门设定
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadValveSetting(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RCVS指令读取当前阀门状态
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadValveState(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
+ * 说明：使用RALM指令读取报警状态
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadAlarmState(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick);
+
+/*
  * 说明：推进EX-201S非阻塞事务状态机，必须由MfcTask周期调用
  * 输入：p_context    EX-201S事务上下文
  *      current_tick 当前FreeRTOS系统节拍
@@ -186,5 +328,15 @@ A_EX201_Result A_EX201_GetFlowResult(
  * 输出：A_EX201_Result 事务执行结果
  */
 A_EX201_Result A_EX201_GetCommandResult(A_EX201_Context *p_context);
+
+/*
+ * 说明：解析一个设备初始化或状态读取结果并更新对应有效字段
+ * 输入：p_context     EX-201S事务上下文
+ *      p_device_info 设备信息结构体
+ * 输出：A_EX201_Result 事务及参数解析结果
+ */
+A_EX201_Result A_EX201_GetDeviceInfoResult(
+    A_EX201_Context *p_context,
+    A_EX201_DeviceInfo *p_device_info);
 
 #endif /* MFC_A_EX201_H_ */

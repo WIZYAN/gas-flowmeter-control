@@ -365,6 +365,49 @@ F_EX201_ProtocolResult F_EX201_EncodeFlowValue(
 }
 
 /*
+ * 说明：将一至四位无符号十进制ASCII数据转换为整数
+ * 输入：p_data      无符号十进制ASCII数据
+ *      data_length 数据长度，范围1～4字节
+ *      p_value     输出的整数值
+ * 输出：F_EX201_ProtocolResult 转换结果
+ */
+F_EX201_ProtocolResult F_EX201_DecodeUnsignedValue(
+    const uint8_t *p_data,
+    size_t data_length,
+    uint32_t *p_value)
+{
+    size_t data_index = 0U; // 当前十进制字符索引
+    uint32_t value = 0U;    // 已解析的无符号整数
+
+    if ((p_data == NULL) || (p_value == NULL))
+    {
+        return F_EX201_PROTOCOL_RESULT_INVALID_ARGUMENT;
+    }
+
+    if ((0U == data_length) || (data_length > EX201_FLOW_MANTISSA_LENGTH))
+    {
+        return F_EX201_PROTOCOL_RESULT_INVALID_FRAME;
+    }
+
+    for (data_index = 0U; data_index < data_length; data_index++)
+    {
+        if ((p_data[data_index] < (uint8_t) '0') ||
+            (p_data[data_index] > (uint8_t) '9'))
+        {
+            return F_EX201_PROTOCOL_RESULT_INVALID_FRAME;
+        }
+
+        value =
+            (value * 10U) +
+            (uint32_t) (p_data[data_index] - (uint8_t) '0');
+    }
+
+    *p_value = value;
+
+    return F_EX201_PROTOCOL_RESULT_OK;
+}
+
+/*
  * 说明：将EX-201S流量ASCII数据转换为有符号流量尾数
  * 输入：p_data          四位无符号数据或符号加四位瞬时流量数据
  *      data_length     数据长度
@@ -376,10 +419,10 @@ F_EX201_ProtocolResult F_EX201_DecodeFlowValue(
     size_t data_length,
     int32_t *p_flow_mantissa)
 {
-    size_t data_index = 0U;     // 当前十进制字符索引
-    size_t digit_start = 0U;    // 十进制数字起始位置
-    uint32_t absolute_value = 0U; // 流量尾数绝对值
-    int32_t sign = 1;           // 流量尾数符号
+    F_EX201_ProtocolResult decode_result = F_EX201_PROTOCOL_RESULT_OK; // 无符号尾数解析结果
+    size_t digit_start = 0U;                                         // 十进制数字起始位置
+    uint32_t absolute_value = 0U;                                    // 流量尾数绝对值
+    int32_t sign = 1;                                                // 流量尾数符号
 
     if ((p_data == NULL) || (p_flow_mantissa == NULL))
     {
@@ -408,17 +451,14 @@ F_EX201_ProtocolResult F_EX201_DecodeFlowValue(
         return F_EX201_PROTOCOL_RESULT_INVALID_FRAME;
     }
 
-    for (data_index = digit_start; data_index < data_length; data_index++)
-    {
-        if ((p_data[data_index] < (uint8_t) '0') ||
-            (p_data[data_index] > (uint8_t) '9'))
-        {
-            return F_EX201_PROTOCOL_RESULT_INVALID_FRAME;
-        }
+    decode_result = F_EX201_DecodeUnsignedValue(
+        &p_data[digit_start],
+        EX201_FLOW_MANTISSA_LENGTH,
+        &absolute_value);
 
-        absolute_value =
-            (absolute_value * 10U) +
-            (uint32_t) (p_data[data_index] - (uint8_t) '0');
+    if (F_EX201_PROTOCOL_RESULT_OK != decode_result)
+    {
+        return decode_result;
     }
 
     *p_flow_mantissa = (int32_t) absolute_value * sign;

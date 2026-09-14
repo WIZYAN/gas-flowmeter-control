@@ -141,6 +141,18 @@ F_EX201_ProtocolResult F_EX201_DecodeFlowValue(
     int32_t *p_flow_mantissa);
 
 /*
+ * 说明：将一至四位无符号十进制ASCII数据转换为整数
+ * 输入：p_data      无符号十进制ASCII数据
+ *      data_length 数据长度，范围1～4字节
+ *      p_value     输出的整数值
+ * 输出：F_EX201_ProtocolResult 转换结果
+ */
+F_EX201_ProtocolResult F_EX201_DecodeUnsignedValue(
+    const uint8_t *p_data,
+    size_t data_length,
+    uint32_t *p_value);
+
+/*
  * 说明：通过硬件层异步发送一帧EX-201S数据
  * 输入：p_context  功能模块上下文
  *      p_data      待发送帧

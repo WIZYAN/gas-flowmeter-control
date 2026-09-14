@@ -15,6 +15,13 @@ static const char s_read_set_flow_command[EX201_COMMAND_LENGTH] = {'R', 'S', 'F'
 static const char s_read_actual_flow_command[EX201_COMMAND_LENGTH] = {'R', 'C', 'F', 'R'}; // 读取瞬时流量尾数指令
 static const char s_close_flow_command[EX201_COMMAND_LENGTH] = {'W', 'V', 'S', 'S'};       // 设置数字阀门状态指令
 static const uint8_t s_close_flow_data[] = {'2'};                                           // 数字阀门全关闭参数
+static const char s_read_full_scale_command[EX201_COMMAND_LENGTH] = {'R', 'M', 'F', 'S'};  // 读取满刻度流量尾数指令
+static const char s_read_decimal_command[EX201_COMMAND_LENGTH] = {'R', 'D', 'P', 'P'};     // 读取流量小数位指令
+static const char s_read_unit_command[EX201_COMMAND_LENGTH] = {'R', 'F', 'R', 'U'};        // 读取流量单位指令
+static const char s_read_source_command[EX201_COMMAND_LENGTH] = {'R', 'F', 'S', 'M'};      // 读取流量设定来源指令
+static const char s_read_valve_setting_command[EX201_COMMAND_LENGTH] = {'R', 'V', 'S', 'S'}; // 读取数字阀门设定指令
+static const char s_read_valve_state_command[EX201_COMMAND_LENGTH] = {'R', 'C', 'V', 'S'}; // 读取当前阀门状态指令
+static const char s_read_alarm_command[EX201_COMMAND_LENGTH] = {'R', 'A', 'L', 'M'};       // 读取报警状态指令
 
 /*
  * 说明：判断当前等待状态是否已经超时，减法写法允许系统节拍自然回绕
@@ -403,6 +410,160 @@ A_EX201_Result A_EX201_CloseFlow(
 }
 
 /*
+ * 说明：使用RMFS指令读取满刻度流量尾数
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadFullScale(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_full_scale_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_FULL_SCALE);
+}
+
+/*
+ * 说明：使用RDPP指令读取流量小数位
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadDecimalPlaces(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_decimal_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_DECIMAL);
+}
+
+/*
+ * 说明：使用RFRU指令读取流量单位
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadFlowUnit(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_unit_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_UNIT);
+}
+
+/*
+ * 说明：使用RFSM指令读取流量设定来源
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadFlowSource(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_source_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_SOURCE);
+}
+
+/*
+ * 说明：使用RVSS指令读取数字阀门设定
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadValveSetting(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_valve_setting_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_VALVE_SETTING);
+}
+
+/*
+ * 说明：使用RCVS指令读取当前阀门状态
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadValveState(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_valve_state_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_VALVE_STATE);
+}
+
+/*
+ * 说明：使用RALM指令读取报警状态
+ * 输入：p_context    EX-201S事务上下文
+ *      address      流量计通信地址
+ *      current_tick 当前FreeRTOS系统节拍
+ * 输出：A_EX201_Result 请求启动结果
+ */
+A_EX201_Result A_EX201_ReadAlarmState(
+    A_EX201_Context *p_context,
+    uint16_t address,
+    TickType_t current_tick)
+{
+    return A_EX201_StartOperation(
+        p_context,
+        address,
+        s_read_alarm_command,
+        NULL,
+        0U,
+        current_tick,
+        A_EX201_OPERATION_READ_ALARM);
+}
+
+/*
  * 说明：推进EX-201S非阻塞事务状态机，必须由MfcTask周期调用
  * 输入：p_context    EX-201S事务上下文
  *      current_tick 当前FreeRTOS系统节拍
@@ -623,6 +784,160 @@ A_EX201_Result A_EX201_GetCommandResult(A_EX201_Context *p_context)
     if (0U != g_response.data_length)
     {
         return A_EX201_RESULT_PROTOCOL_ERROR;
+    }
+
+    return A_EX201_RESULT_OK;
+}
+
+/*
+ * 说明：判断当前操作是否为设备信息读取操作
+ * 输入：operation 当前业务操作类型
+ * 输出：uint32_t 非0表示设备信息读取操作，0表示其他操作
+ */
+static uint32_t A_EX201_IsDeviceInfoOperation(A_EX201_Operation operation)
+{
+    switch (operation)
+    {
+        case A_EX201_OPERATION_READ_FULL_SCALE:
+        case A_EX201_OPERATION_READ_DECIMAL:
+        case A_EX201_OPERATION_READ_UNIT:
+        case A_EX201_OPERATION_READ_SOURCE:
+        case A_EX201_OPERATION_READ_VALVE_SETTING:
+        case A_EX201_OPERATION_READ_VALVE_STATE:
+        case A_EX201_OPERATION_READ_ALARM:
+            return 1U;
+
+        default:
+            return 0U;
+    }
+}
+
+/*
+ * 说明：解析一个设备初始化或状态读取结果并更新对应有效字段
+ * 输入：p_context     EX-201S事务上下文
+ *      p_device_info 设备信息结构体
+ * 输出：A_EX201_Result 事务及参数解析结果
+ */
+A_EX201_Result A_EX201_GetDeviceInfoResult(
+    A_EX201_Context *p_context,
+    A_EX201_DeviceInfo *p_device_info)
+{
+    F_EX201_Response g_response = {0};                             // 当前EX-201S响应
+    A_EX201_Operation operation = A_EX201_OPERATION_NONE;          // 当前设备信息读取操作
+    A_EX201_Result transaction_result = A_EX201_RESULT_NO_RESULT; // 当前事务结果
+    F_EX201_ProtocolResult decode_result = F_EX201_PROTOCOL_RESULT_OK; // 无符号数据解析结果
+    uint32_t value = 0U;                                          // 已解析的设备参数值
+
+    if ((p_context == NULL) || (p_device_info == NULL))
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+
+    if (0U == p_context->initialized)
+    {
+        return A_EX201_RESULT_NOT_INITIALIZED;
+    }
+
+    operation = p_context->operation;
+
+    if (0U == A_EX201_IsDeviceInfoOperation(operation))
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+
+    transaction_result = A_EX201_GetResult(p_context, &g_response);
+
+    if (A_EX201_RESULT_OK != transaction_result)
+    {
+        return transaction_result;
+    }
+
+    decode_result = F_EX201_DecodeUnsignedValue(
+        g_response.data,
+        (size_t) g_response.data_length,
+        &value);
+
+    if (F_EX201_PROTOCOL_RESULT_OK != decode_result)
+    {
+        return A_EX201_RESULT_PROTOCOL_ERROR;
+    }
+
+    switch (operation)
+    {
+        case A_EX201_OPERATION_READ_FULL_SCALE:
+            if ((EX201_FLOW_MANTISSA_LENGTH != g_response.data_length) ||
+                (0U == value) ||
+                (value > EX201_FLOW_MANTISSA_MAX))
+            {
+                return A_EX201_RESULT_PROTOCOL_ERROR;
+            }
+
+            p_device_info->full_scale_mantissa = (uint16_t) value;
+            p_device_info->valid_flags |= A_EX201_DEVICE_INFO_FULL_SCALE_VALID;
+            break;
+
+        case A_EX201_OPERATION_READ_DECIMAL:
+            if ((1U != g_response.data_length) || (value > 3U))
+            {
+                return A_EX201_RESULT_PROTOCOL_ERROR;
+            }
+
+            p_device_info->decimal_places = (uint8_t) value;
+            p_device_info->valid_flags |= A_EX201_DEVICE_INFO_DECIMAL_VALID;
+            break;
+
+        case A_EX201_OPERATION_READ_UNIT:
+            if ((1U != g_response.data_length) || (value > 1U))
+            {
+                return A_EX201_RESULT_PROTOCOL_ERROR;
+            }
+
+            p_device_info->flow_unit = (A_EX201_FlowUnit) value;
+            p_device_info->valid_flags |= A_EX201_DEVICE_INFO_UNIT_VALID;
+            break;
+
+        case A_EX201_OPERATION_READ_SOURCE:
+            if ((1U != g_response.data_length) || (value > 1U))
+            {
+                return A_EX201_RESULT_PROTOCOL_ERROR;
+            }
+
+            p_device_info->flow_source = (A_EX201_FlowSource) value;
+            p_device_info->valid_flags |= A_EX201_DEVICE_INFO_SOURCE_VALID;
+            break;
+
+        case A_EX201_OPERATION_READ_VALVE_SETTING:
+            if ((1U != g_response.data_length) || (value > 2U))
+            {
+                return A_EX201_RESULT_PROTOCOL_ERROR;
+            }
+
+            p_device_info->valve_setting = (A_EX201_ValveSetting) value;
+            p_device_info->valid_flags |= A_EX201_DEVICE_INFO_VALVE_SETTING_VALID;
+            break;
+
+        case A_EX201_OPERATION_READ_VALVE_STATE:
+            if ((1U != g_response.data_length) || (value > 3U))
+            {
+                return A_EX201_RESULT_PROTOCOL_ERROR;
+            }
+
+            p_device_info->valve_state = (A_EX201_ValveState) value;
+            p_device_info->valid_flags |= A_EX201_DEVICE_INFO_VALVE_STATE_VALID;
+            break;
+
+        case A_EX201_OPERATION_READ_ALARM:
+            if ((1U != g_response.data_length) || (value > 7U))
+            {
+                return A_EX201_RESULT_PROTOCOL_ERROR;
+            }
+
+            p_device_info->alarm_state = (uint8_t) value;
+            p_device_info->valid_flags |= A_EX201_DEVICE_INFO_ALARM_VALID;
+            break;
+
+        default:
+            return A_EX201_RESULT_INVALID_ARGUMENT;
     }
 
     return A_EX201_RESULT_OK;
