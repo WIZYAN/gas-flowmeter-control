@@ -87,7 +87,7 @@ static void A_EX201_RecoverAndSetError(
 {
     F_EX201_TransportResult recover_result = F_EX201_TRANSPORT_RESULT_OK; // 功能层恢复结果
 
-    recover_result = F_EX201_Recover(&p_context->function_context);
+    recover_result = F_EX201_Recover(p_context->p_function);
 
     if (F_EX201_TRANSPORT_RESULT_OK == recover_result)
     {
@@ -151,7 +151,7 @@ A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context)
     F_EX201_TransportResult initialize_result = F_EX201_TRANSPORT_RESULT_OK; // 功能层初始化结果
     size_t command_index = 0U;                                               // 命令字符索引
 
-    if (p_context == NULL)
+    if ((p_context == NULL) || (p_context->p_function == NULL))
     {
         return A_EX201_RESULT_INVALID_ARGUMENT;
     }
@@ -169,7 +169,7 @@ A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context)
         p_context->expected_command[command_index] = '\0';
     }
 
-    initialize_result = F_EX201_Initialize(&p_context->function_context);
+    initialize_result = F_EX201_Initialize(p_context->p_function);
 
     if (F_EX201_TRANSPORT_RESULT_OK != initialize_result)
     {
@@ -190,9 +190,15 @@ A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context)
  */
 A_EX201_Result A_EX201_Recover(A_EX201_Context *p_context)
 {
-    if (NULL == p_context) { return A_EX201_RESULT_INVALID_ARGUMENT; }
-    if (0U == p_context->initialized) { return A_EX201_RESULT_NOT_INITIALIZED; }
-    if (F_EX201_TRANSPORT_RESULT_OK != F_EX201_Recover(&p_context->function_context))
+    if (NULL == p_context)
+    {
+        return A_EX201_RESULT_INVALID_ARGUMENT;
+    }
+    if (0U == p_context->initialized)
+    {
+        return A_EX201_RESULT_NOT_INITIALIZED;
+    }
+    if (F_EX201_TRANSPORT_RESULT_OK != F_EX201_Recover(p_context->p_function))
     {
         p_context->state = A_EX201_STATE_ERROR;
         p_context->result = A_EX201_RESULT_RECOVERY_ERROR;
@@ -262,7 +268,7 @@ A_EX201_Result A_EX201_StartRequest(
     }
 
     send_result = F_EX201_SendFrame(
-        &p_context->function_context,
+        p_context->p_function,
         p_context->request_frame,
         request_length);
 
@@ -604,7 +610,7 @@ void A_EX201_Process(
 
     if (A_EX201_STATE_WAIT_TX_COMPLETE == p_context->state)
     {
-        if (0U == F_EX201_IsTransmitBusy(&p_context->function_context))
+        if (0U == F_EX201_IsTransmitBusy(p_context->p_function))
         {
             p_context->state_start_tick = current_tick;
             p_context->state = A_EX201_STATE_WAIT_RESPONSE;
@@ -626,7 +632,7 @@ void A_EX201_Process(
     }
 
     receive_result = F_EX201_ReceiveFrame(
-        &p_context->function_context,
+        p_context->p_function,
         p_context->response_frame,
         sizeof(p_context->response_frame),
         &response_length);

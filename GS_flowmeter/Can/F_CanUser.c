@@ -113,10 +113,22 @@ F_CanUser_Result F_CanUser_Decode(const F_CanUser_Frame *p_frame, F_CanUser_Mess
  */
 F_CanUser_DataKind F_CanUser_GetDataKind(uint16_t address)
 {
-    if (address <= 0x00FFU) { return F_CANUSER_KIND_READ_FLOAT; }
-    if (address <= 0x01FFU) { return F_CANUSER_KIND_READ_UINT; }
-    if (address <= 0x02FFU) { return F_CANUSER_KIND_WRITE_FLOAT; }
-    if (address <= 0x03FFU) { return F_CANUSER_KIND_WRITE_UINT; }
+    if (address <= 0x00FFU)
+    {
+        return F_CANUSER_KIND_READ_FLOAT;
+    }
+    if (address <= 0x01FFU)
+    {
+        return F_CANUSER_KIND_READ_UINT;
+    }
+    if (address <= 0x02FFU)
+    {
+        return F_CANUSER_KIND_WRITE_FLOAT;
+    }
+    if (address <= 0x03FFU)
+    {
+        return F_CANUSER_KIND_WRITE_UINT;
+    }
     return F_CANUSER_KIND_UNDEFINED;
 }
 

@@ -14,10 +14,7 @@ typedef enum
     F_HOSTCAN_BUSY,   // 发送忙
     F_HOSTCAN_ERROR   // 传输异常
 } F_HostCan_Result;
-typedef struct
-{
-    H_HostCan_Context hardware; // CAN0硬件上下文
-} F_HostCan_Context;
+typedef H_HostCan_Context F_HostCan_Context; // 传输层直接使用硬件状态，不再增加仅含hardware的包装结构
 
 /*
  * 说明：初始化传输
@@ -55,4 +52,3 @@ F_HostCan_Result F_HostCan_Receive(F_HostCan_Context *p_context, F_CanUser_Frame
 F_HostCan_Result F_HostCan_Send(F_HostCan_Context *p_context, const F_CanUser_Frame *p_frame);
 
 #endif
-

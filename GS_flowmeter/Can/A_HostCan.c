@@ -22,12 +22,17 @@ static uint32_t A_HostCan_AddressDefined(uint16_t address)
     }; // 每个组内连续6个通道地址
     uint32_t index = 0U; // 参数组索引
     if (((address >= 0x0100U) && (address <= 0x010EU) && (0x0107U != address)) ||
-        ((address >= 0x0300U) && (address <= 0x0309U))) { return 1U; }
+        ((address >= 0x0300U) && (address <= 0x0309U)))
+    {
+        return 1U;
+    }
     for (index = 0U; index < (sizeof(s_channel_groups) / sizeof(s_channel_groups[0])); index++)
     {
         if (((uint32_t) address >= s_channel_groups[index]) &&
             ((uint32_t) address < ((uint32_t) s_channel_groups[index] + A_HOSTCAN_CHANNEL_COUNT)))
-        { return 1U; }
+        {
+            return 1U;
+        }
     }
     return 0U;
 }
@@ -100,61 +105,107 @@ static A_HostCan_Code A_HostCan_ReadParameter(A_HostCan_Context *p_context, uint
     uint32_t channel = 0U;  // 在线掩码循环索引
     taskENTER_CRITICAL();
     g_system = p_context->system;
-    if (index < A_HOSTCAN_CHANNEL_COUNT) { g_channel = p_context->channels[index]; }
+    if (index < A_HOSTCAN_CHANNEL_COUNT)
+    {
+        g_channel = p_context->channels[index];
+    }
     taskEXIT_CRITICAL();
 
     if ((address >= 0x0100U) && (address <= 0x010EU))
     {
         switch (address)
         {
-            case 0x0100U: value = g_system.state; break;
-            case 0x0101U: value = g_system.faults; break;
+            case 0x0100U:
+                value = g_system.state;
+                break;
+            case 0x0101U:
+                value = g_system.faults;
+                break;
             case 0x0102U:
                 taskENTER_CRITICAL();
                 for (channel = 0U; channel < A_HOSTCAN_CHANNEL_COUNT; channel++)
                 {
-                    if (0U != p_context->channels[channel].online) { value |= 1UL << channel; }
+                    if (0U != p_context->channels[channel].online)
+                    {
+                        value |= 1UL << channel;
+                    }
                 }
                 taskEXIT_CRITICAL();
                 break;
-            case 0x0103U: value = g_system.link; break;
+            case 0x0103U:
+                value = g_system.link;
+                break;
             case 0x0104U:
             case 0x0105U:
-                if (0U == g_system.valves_valid) { return A_HOSTCAN_CODE_NOT_READY; }
+                if (0U == g_system.valves_valid)
+                {
+                    return A_HOSTCAN_CODE_NOT_READY;
+                }
                 value = (0x0104U == address) ? g_system.valve_outputs : g_system.valve_state;
                 break;
-            case 0x0106U: value = 1U; break; // 本项目参数表版本1
-            case 0x0108U: value = A_HOSTCAN_VERSION_MAJOR; break;
-            case 0x0109U: value = A_HOSTCAN_VERSION_MINOR; break;
-            case 0x010AU: value = A_HOSTCAN_VERSION_PATCH; break;
-            case 0x010BU: value = A_HOSTCAN_VERSION_DATE; break;
-            case 0x010CU: value = p_context->last_error_address; break;
-            case 0x010DU: value = p_context->last_error_code; break;
-            case 0x010EU: value = p_context->last_error_function; break;
-            default: return A_HOSTCAN_CODE_ADDRESS;
+            case 0x0106U:
+                value = 1U;
+                break; // 本项目参数表版本1
+            case 0x0108U:
+                value = A_HOSTCAN_VERSION_MAJOR;
+                break;
+            case 0x0109U:
+                value = A_HOSTCAN_VERSION_MINOR;
+                break;
+            case 0x010AU:
+                value = A_HOSTCAN_VERSION_PATCH;
+                break;
+            case 0x010BU:
+                value = A_HOSTCAN_VERSION_DATE;
+                break;
+            case 0x010CU:
+                value = p_context->last_error_address;
+                break;
+            case 0x010DU:
+                value = p_context->last_error_code;
+                break;
+            case 0x010EU:
+                value = p_context->last_error_function;
+                break;
+            default:
+                return A_HOSTCAN_CODE_ADDRESS;
         }
     }
     else if ((address >= 0x0300U) && (address <= 0x0309U))
     {
-        if (0U == g_system.valves_valid) { return A_HOSTCAN_CODE_NOT_READY; }
+        if (0U == g_system.valves_valid)
+        {
+            return A_HOSTCAN_CODE_NOT_READY;
+        }
         value = (0x0309U == address) ? g_system.valve_target :
                 ((g_system.valve_target >> (address - 0x0300U)) & 1U);
     }
     else
     {
-        if (index >= A_HOSTCAN_CHANNEL_COUNT) { return A_HOSTCAN_CODE_ADDRESS; }
+        if (index >= A_HOSTCAN_CHANNEL_COUNT)
+        {
+            return A_HOSTCAN_CODE_ADDRESS;
+        }
         switch (group)
         {
             case 0x0000U:
                 required = A_HOSTCAN_VALID_ACTUAL;
                 value = F_CanUser_FloatToBits(g_channel.actual_flow);
-                if (0U == g_channel.online) { return A_HOSTCAN_CODE_OFFLINE; }
+                if (0U == g_channel.online)
+                {
+                    return A_HOSTCAN_CODE_OFFLINE;
+                }
                 if ((now_ms - g_channel.sampled_ms) > A_HOSTCAN_DATA_MAX_AGE_MS)
-                { return A_HOSTCAN_CODE_STALE; }
+                {
+                    return A_HOSTCAN_CODE_STALE;
+                }
                 break;
             case 0x0010U:
                 required = A_HOSTCAN_VALID_CONFIRMED;
-                if (0U == g_channel.online) { return A_HOSTCAN_CODE_OFFLINE; }
+                if (0U == g_channel.online)
+                {
+                    return A_HOSTCAN_CODE_OFFLINE;
+                }
                 value = F_CanUser_FloatToBits(g_channel.confirmed_flow);
                 break;
             case 0x0020U:
@@ -165,29 +216,55 @@ static A_HostCan_Code A_HostCan_ReadParameter(A_HostCan_Context *p_context, uint
                 required = A_HOSTCAN_VALID_TARGET;
                 value = F_CanUser_FloatToBits(g_channel.target_flow);
                 break;
-            case 0x0110U: value = g_channel.valid_flags; break;
+            case 0x0110U:
+                value = g_channel.valid_flags;
+                break;
             case 0x0120U:
                 required = A_HOSTCAN_VALID_ALARM;
-                if (0U == g_channel.online) { return A_HOSTCAN_CODE_OFFLINE; }
+                if (0U == g_channel.online)
+                {
+                    return A_HOSTCAN_CODE_OFFLINE;
+                }
                 value = g_channel.alarm;
                 break;
-            case 0x0130U: required = A_HOSTCAN_VALID_UNIT; value = g_channel.unit; break;
-            case 0x0140U: required = A_HOSTCAN_VALID_DECIMAL; value = g_channel.decimal_places; break;
+            case 0x0130U:
+                required = A_HOSTCAN_VALID_UNIT;
+                value = g_channel.unit;
+                break;
+            case 0x0140U:
+                required = A_HOSTCAN_VALID_DECIMAL;
+                value = g_channel.decimal_places;
+                break;
             case 0x0150U:
                 value = (0U != (g_channel.valid_flags & A_HOSTCAN_VALID_ACTUAL)) ?
                         (now_ms - g_channel.sampled_ms) : UINT32_MAX;
                 break;
-            case 0x0160U: value = g_channel.initialize_state; break;
-            case 0x0170U: required = A_HOSTCAN_VALID_SOURCE; value = g_channel.flow_source; break;
+            case 0x0160U:
+                value = g_channel.initialize_state;
+                break;
+            case 0x0170U:
+                required = A_HOSTCAN_VALID_SOURCE;
+                value = g_channel.flow_source;
+                break;
             case 0x0180U:
                 required = A_HOSTCAN_VALID_VALVE;
-                if (0U == g_channel.online) { return A_HOSTCAN_CODE_OFFLINE; }
+                if (0U == g_channel.online)
+                {
+                    return A_HOSTCAN_CODE_OFFLINE;
+                }
                 value = g_channel.internal_valve;
                 break;
-            case 0x0190U: required = A_HOSTCAN_VALID_ADDRESS; value = g_channel.device_address; break;
-            default: return A_HOSTCAN_CODE_ADDRESS;
+            case 0x0190U:
+                required = A_HOSTCAN_VALID_ADDRESS;
+                value = g_channel.device_address;
+                break;
+            default:
+                return A_HOSTCAN_CODE_ADDRESS;
         }
-        if ((g_channel.valid_flags & required) != required) { return A_HOSTCAN_CODE_NOT_READY; }
+        if ((g_channel.valid_flags & required) != required)
+        {
+            return A_HOSTCAN_CODE_NOT_READY;
+        }
     }
     *p_value = value;
     return A_HOSTCAN_CODE_OK;
@@ -208,9 +285,18 @@ static A_HostCan_Code A_HostCan_StartWrite(A_HostCan_Context *p_context,
                         A_HOSTCAN_VALID_DECIMAL | A_HOSTCAN_VALID_SOURCE; // 换算及控制需要的参数
     float flow = 0.0F; // CAN输入流量工程值
     uint32_t bit = 0U; // 单阀对应位
-    if (1U != p_request->count) { return A_HOSTCAN_CODE_VALUE; }
-    if (0U == A_HostCan_AddressDefined(p_request->address)) { return A_HOSTCAN_CODE_ADDRESS; }
-    if (p_request->address < 0x0200U) { return A_HOSTCAN_CODE_READ_ONLY; }
+    if (1U != p_request->count)
+    {
+        return A_HOSTCAN_CODE_VALUE;
+    }
+    if (0U == A_HostCan_AddressDefined(p_request->address))
+    {
+        return A_HOSTCAN_CODE_ADDRESS;
+    }
+    if (p_request->address < 0x0200U)
+    {
+        return A_HOSTCAN_CODE_READ_ONLY;
+    }
     g_command.started_ms = now_ms;
     g_command.value = p_request->value;
     taskENTER_CRITICAL();
@@ -220,14 +306,31 @@ static A_HostCan_Code A_HostCan_StartWrite(A_HostCan_Context *p_context,
         g_command.index = p_request->address - 0x0200U;
         g_channel = p_context->channels[g_command.index];
         flow = F_CanUser_BitsToFloat(p_request->value);
-        if (!isfinite(flow)) { result = A_HOSTCAN_CODE_VALUE; }
-        else if (flow < 0.0F) { result = A_HOSTCAN_CODE_RANGE; }
-        else if (0U == (p_context->executors & A_HOSTCAN_EXECUTOR_MFC)) { result = A_HOSTCAN_CODE_NOT_READY; }
-        else if (0U == g_channel.online) { result = A_HOSTCAN_CODE_OFFLINE; }
+        if (!isfinite(flow))
+        {
+            result = A_HOSTCAN_CODE_VALUE;
+        }
+        else if (flow < 0.0F)
+        {
+            result = A_HOSTCAN_CODE_RANGE;
+        }
+        else if (0U == (p_context->executors & A_HOSTCAN_EXECUTOR_MFC))
+        {
+            result = A_HOSTCAN_CODE_NOT_READY;
+        }
+        else if (0U == g_channel.online)
+        {
+            result = A_HOSTCAN_CODE_OFFLINE;
+        }
         else if (((g_channel.valid_flags & required) != required) ||
                  (2U != g_channel.initialize_state) || (0U != g_channel.flow_source))
-        { result = A_HOSTCAN_CODE_NOT_READY; }
-        else if (flow > g_channel.full_scale) { result = A_HOSTCAN_CODE_RANGE; }
+        {
+            result = A_HOSTCAN_CODE_NOT_READY;
+        }
+        else if (flow > g_channel.full_scale)
+        {
+            result = A_HOSTCAN_CODE_RANGE;
+        }
     }
     else if ((p_request->address >= 0x0300U) && (p_request->address <= 0x0309U))
     {
@@ -238,9 +341,15 @@ static A_HostCan_Code A_HostCan_StartWrite(A_HostCan_Context *p_context,
         if (A_HOSTCAN_COMMAND_SET_VALVES == g_command.operation)
         {
             g_command.valve_target = p_request->value;
-            if (0U == A_HostCan_ValvesLegal(g_command.valve_target)) { result = A_HOSTCAN_CODE_INTERLOCK; }
+            if (0U == A_HostCan_ValvesLegal(g_command.valve_target))
+            {
+                result = A_HOSTCAN_CODE_INTERLOCK;
+            }
         }
-        else if (p_request->value > 1U) { result = A_HOSTCAN_CODE_VALUE; }
+        else if (p_request->value > 1U)
+        {
+            result = A_HOSTCAN_CODE_VALUE;
+        }
         else
         {
             bit = 1UL << g_command.index;
@@ -258,7 +367,10 @@ static A_HostCan_Code A_HostCan_StartWrite(A_HostCan_Context *p_context,
                 g_command.valve_target &= ~bit;
                 if (0U != p_request->value)
                 {
-                    if (7U == g_command.index) { g_command.valve_target &= ~A_HOSTCAN_VALVE_GROUP79; }
+                    if (7U == g_command.index)
+                    {
+                        g_command.valve_target &= ~A_HOSTCAN_VALVE_GROUP79;
+                    }
                     g_command.valve_target |= bit;
                 }
             }
@@ -266,18 +378,29 @@ static A_HostCan_Code A_HostCan_StartWrite(A_HostCan_Context *p_context,
         if ((A_HOSTCAN_CODE_OK == result) &&
             ((0U == (p_context->executors & A_HOSTCAN_EXECUTOR_VALVE)) ||
              (0U == p_context->system.valves_valid)))
-        { result = A_HOSTCAN_CODE_NOT_READY; }
+        {
+            result = A_HOSTCAN_CODE_NOT_READY;
+        }
     }
-    else { result = A_HOSTCAN_CODE_ADDRESS; }
-    if ((A_HOSTCAN_CODE_OK == result) && (0U != p_context->command_state)) { result = A_HOSTCAN_CODE_BUSY; }
+    else
+    {
+        result = A_HOSTCAN_CODE_ADDRESS;
+    }
+    if ((A_HOSTCAN_CODE_OK == result) && (A_HOSTCAN_COMMAND_IDLE != p_context->command_state))
+    {
+        result = A_HOSTCAN_CODE_BUSY;
+    }
     if (A_HOSTCAN_CODE_OK == result)
     {
         p_context->next_sequence++;
-        if (0U == p_context->next_sequence) { p_context->next_sequence++; }
+        if (0U == p_context->next_sequence)
+        {
+            p_context->next_sequence++;
+        }
         g_command.sequence = p_context->next_sequence;
         p_context->command = g_command;
         p_context->requester = *p_request;
-        p_context->command_state = 1U;
+        p_context->command_state = A_HOSTCAN_COMMAND_WAIT_QUEUE;
     }
     taskEXIT_CRITICAL();
     return result;
@@ -314,14 +437,19 @@ static void A_HostCan_HandleRequest(A_HostCan_Context *p_context, const F_CanUse
     }
     if ((0U == p_request->count) || (p_request->count > A_HOSTCAN_MAX_READ_COUNT) ||
         ((uint32_t) address + p_request->count > 0x0400U))
-    { code = A_HOSTCAN_CODE_VALUE; }
+    {
+        code = A_HOSTCAN_CODE_VALUE;
+    }
     else
     {
         for (index = 0U; index < p_request->count; index++)
         {
             address = (uint16_t) ((uint32_t) p_request->address + index);
             code = A_HostCan_ReadParameter(p_context, address, now_ms, &values[index]);
-            if (A_HOSTCAN_CODE_OK != code) { break; }
+            if (A_HOSTCAN_CODE_OK != code)
+            {
+                break;
+            }
         }
     }
     if (A_HOSTCAN_CODE_OK != code)
@@ -343,7 +471,7 @@ static void A_HostCan_HandleRequest(A_HostCan_Context *p_context, const F_CanUse
  */
 static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now_ms)
 {
-    F_HostCan_Result state = F_HostCan_GetTransmitState(&p_context->transport); // 硬件状态
+    F_HostCan_Result state = F_HostCan_GetTransmitState(p_context->p_transport); // 硬件状态
     if ((F_HOSTCAN_ERROR == state) || ((F_HOSTCAN_BUSY == state) && (0U != p_context->transmit_active) &&
         ((now_ms - p_context->transmit_started_ms) >= A_HOSTCAN_TX_TIMEOUT_MS)))
     {
@@ -355,7 +483,7 @@ static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now
             p_context->transmit_active = 0U;
             p_context->recovery_ms = now_ms - A_HOSTCAN_TX_TIMEOUT_MS;
             taskENTER_CRITICAL();
-            p_context->command_state = 0U; // 旧主机请求不在恢复后重新执行
+            p_context->command_state = A_HOSTCAN_COMMAND_IDLE; // 旧主机请求不在恢复后重新执行
             taskEXIT_CRITICAL();
         }
     }
@@ -364,7 +492,10 @@ static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now
         if ((now_ms - p_context->recovery_ms) >= A_HOSTCAN_TX_TIMEOUT_MS)
         {
             p_context->recovery_ms = now_ms;
-            if (F_HOSTCAN_OK == F_HostCan_Recover(&p_context->transport)) { p_context->recovering = 0U; }
+            if (F_HOSTCAN_OK == F_HostCan_Recover(p_context->p_transport))
+            {
+                p_context->recovering = 0U;
+            }
         }
         return;
     }
@@ -376,11 +507,14 @@ static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now
             p_context->transmit_count--;
             p_context->transmit_active = 0U;
         }
-        else { return; }
+        else
+        {
+            return;
+        }
     }
     if (0U != p_context->transmit_count)
     {
-        state = F_HostCan_Send(&p_context->transport, &p_context->transmit[p_context->transmit_read]);
+        state = F_HostCan_Send(p_context->p_transport, &p_context->transmit[p_context->transmit_read]);
         if (F_HOSTCAN_OK == state)
         {
             p_context->transmit_active = 1U;
@@ -400,23 +534,26 @@ static void A_HostCan_ServiceCommand(A_HostCan_Context *p_context, uint32_t now_
     uint32_t completed = 0U; // 本轮是否生成回复
     uint32_t code = 0U;      // 业务结果
     taskENTER_CRITICAL();
-    if (((1U == p_context->command_state) || (2U == p_context->command_state)) &&
+    if (((A_HOSTCAN_COMMAND_WAIT_QUEUE == p_context->command_state) || (A_HOSTCAN_COMMAND_WAIT_RESULT == p_context->command_state)) &&
         ((now_ms - p_context->command.started_ms) >= A_HOSTCAN_COMMAND_TIMEOUT_MS))
     {
         p_context->command_result = A_HOSTCAN_CODE_EXECUTION_TIMEOUT;
-        p_context->command_state = 3U;
+        p_context->command_state = A_HOSTCAN_COMMAND_COMPLETED;
     }
-    if ((3U == p_context->command_state) && (p_context->transmit_count < A_HOSTCAN_TX_CAPACITY))
+    if ((A_HOSTCAN_COMMAND_COMPLETED == p_context->command_state) && (p_context->transmit_count < A_HOSTCAN_TX_CAPACITY))
     {
         g_request = p_context->requester;
         code = p_context->command_result;
-        p_context->command_state = 0U;
+        p_context->command_state = A_HOSTCAN_COMMAND_IDLE;
         completed = 1U;
     }
     taskEXIT_CRITICAL();
     if (0U != completed)
     {
-        if (0U != code) { A_HostCan_RecordError(p_context, &g_request, g_request.address, code); }
+        if (0U != code)
+        {
+            A_HostCan_RecordError(p_context, &g_request, g_request.address, code);
+        }
         A_HostCan_QueueReply(p_context, &g_request, F_CANUSER_WRITE_RETURN, g_request.address, code);
     }
 }
@@ -428,9 +565,18 @@ static void A_HostCan_ServiceCommand(A_HostCan_Context *p_context, uint32_t now_
  */
 uint32_t A_HostCan_Initialize(A_HostCan_Context *p_context, uint8_t self_address)
 {
-    if ((NULL == p_context) || (self_address >= 127U)) { return 0U; }
-    if (0U != p_context->initialized) { return 1U; }
-    if (F_HOSTCAN_OK != F_HostCan_Initialize(&p_context->transport)) { return 0U; }
+    if ((NULL == p_context) || (NULL == p_context->p_transport) || (self_address >= 127U))
+    {
+        return 0U;
+    }
+    if (0U != p_context->initialized)
+    {
+        return 1U;
+    }
+    if (F_HOSTCAN_OK != F_HostCan_Initialize(p_context->p_transport))
+    {
+        return 0U;
+    }
     p_context->self_address = self_address;
     p_context->initialized = 1U;
     return 1U;
@@ -446,14 +592,23 @@ void A_HostCan_Process(A_HostCan_Context *p_context, uint32_t now_ms)
     F_CanUser_Frame g_frame = {0};     // 接收帧
     F_CanUser_Message g_request = {0}; // 解码请求
     uint32_t budget = 4U;             // 每次处理预算
-    if ((NULL == p_context) || (0U == p_context->initialized)) { return; }
+    if ((NULL == p_context) || (0U == p_context->initialized))
+    {
+        return;
+    }
     A_HostCan_ServiceTransmit(p_context, now_ms);
-    if (0U != p_context->recovering) { return; }
+    if (0U != p_context->recovering)
+    {
+        return;
+    }
     A_HostCan_ServiceCommand(p_context, now_ms);
     while ((budget > 0U) &&
            ((A_HOSTCAN_TX_CAPACITY - p_context->transmit_count) >= A_HOSTCAN_MAX_READ_COUNT))
     {
-        if (F_HOSTCAN_OK != F_HostCan_Receive(&p_context->transport, &g_frame)) { break; }
+        if (F_HOSTCAN_OK != F_HostCan_Receive(p_context->p_transport, &g_frame))
+        {
+            break;
+        }
         budget--;
         if (F_CANUSER_RESULT_OK != F_CanUser_Decode(&g_frame, &g_request))
         {
@@ -472,7 +627,10 @@ void A_HostCan_Process(A_HostCan_Context *p_context, uint32_t now_ms)
 uint32_t A_HostCan_PublishChannel(A_HostCan_Context *p_context, uint32_t index, const A_HostCan_Channel *p_channel)
 {
     if ((NULL == p_context) || (NULL == p_channel) || (index >= A_HOSTCAN_CHANNEL_COUNT) ||
-        (0U == p_context->initialized)) { return 0U; }
+        (0U == p_context->initialized))
+    {
+        return 0U;
+    }
     if (((0U != (p_channel->valid_flags & A_HOSTCAN_VALID_ACTUAL)) && !isfinite(p_channel->actual_flow)) ||
         ((0U != (p_channel->valid_flags & A_HOSTCAN_VALID_CONFIRMED)) && !isfinite(p_channel->confirmed_flow)) ||
         ((0U != (p_channel->valid_flags & A_HOSTCAN_VALID_TARGET)) && !isfinite(p_channel->target_flow)) ||
@@ -480,7 +638,9 @@ uint32_t A_HostCan_PublishChannel(A_HostCan_Context *p_context, uint32_t index, 
          (!isfinite(p_channel->full_scale) || (p_channel->full_scale <= 0.0F))) ||
         ((0U != (p_channel->valid_flags & A_HOSTCAN_VALID_DECIMAL)) && (p_channel->decimal_places > 3U)) ||
         ((0U != (p_channel->valid_flags & A_HOSTCAN_VALID_UNIT)) && (p_channel->unit > 1U)))
-    { return 0U; }
+    {
+        return 0U;
+    }
     taskENTER_CRITICAL();
     p_context->channels[index] = *p_channel;
     taskEXIT_CRITICAL();
@@ -497,7 +657,10 @@ uint32_t A_HostCan_PublishSystem(A_HostCan_Context *p_context, const A_HostCan_S
     uint32_t link = 0U; // 链路由MfcTask单独发布，保留当前值
     if ((NULL == p_context) || (NULL == p_system) || (0U == p_context->initialized) ||
         (0U == A_HostCan_ValvesLegal(p_system->valve_outputs)) ||
-        (0U == A_HostCan_ValvesLegal(p_system->valve_target))) { return 0U; }
+        (0U == A_HostCan_ValvesLegal(p_system->valve_target)))
+    {
+        return 0U;
+    }
     taskENTER_CRITICAL();
     link = p_context->system.link;
     p_context->system = *p_system;
@@ -513,7 +676,10 @@ uint32_t A_HostCan_PublishSystem(A_HostCan_Context *p_context, const A_HostCan_S
  */
 uint32_t A_HostCan_PublishMfcLink(A_HostCan_Context *p_context, uint32_t link)
 {
-    if ((NULL == p_context) || (0U == p_context->initialized) || (link > 3U)) { return 0U; }
+    if ((NULL == p_context) || (0U == p_context->initialized) || (link > 3U))
+    {
+        return 0U;
+    }
     taskENTER_CRITICAL();
     p_context->system.link = link;
     taskEXIT_CRITICAL();
@@ -527,17 +693,20 @@ uint32_t A_HostCan_PublishMfcLink(A_HostCan_Context *p_context, uint32_t link)
  */
 void A_HostCan_SetExecutors(A_HostCan_Context *p_context, uint32_t executors)
 {
-    if ((NULL == p_context) || (0U == p_context->initialized)) { return; }
+    if ((NULL == p_context) || (0U == p_context->initialized))
+    {
+        return;
+    }
     taskENTER_CRITICAL();
     p_context->executors = executors & (A_HOSTCAN_EXECUTOR_MFC | A_HOSTCAN_EXECUTOR_VALVE);
-    if (((1U == p_context->command_state) || (2U == p_context->command_state)) &&
+    if (((A_HOSTCAN_COMMAND_WAIT_QUEUE == p_context->command_state) || (A_HOSTCAN_COMMAND_WAIT_RESULT == p_context->command_state)) &&
         (((A_HOSTCAN_COMMAND_SET_FLOW == p_context->command.operation) &&
           (0U == (p_context->executors & A_HOSTCAN_EXECUTOR_MFC))) ||
          ((A_HOSTCAN_COMMAND_SET_FLOW != p_context->command.operation) &&
           (0U == (p_context->executors & A_HOSTCAN_EXECUTOR_VALVE)))))
     {
         p_context->command_result = A_HOSTCAN_CODE_NOT_READY;
-        p_context->command_state = 3U;
+        p_context->command_state = A_HOSTCAN_COMMAND_COMPLETED;
     }
     taskEXIT_CRITICAL();
 }
@@ -550,12 +719,15 @@ void A_HostCan_SetExecutors(A_HostCan_Context *p_context, uint32_t executors)
 uint32_t A_HostCan_TakeCommand(A_HostCan_Context *p_context, A_HostCan_Command *p_command)
 {
     uint32_t taken = 0U; // 本次是否取得命令
-    if ((NULL == p_context) || (NULL == p_command) || (0U == p_context->initialized)) { return 0U; }
+    if ((NULL == p_context) || (NULL == p_command) || (0U == p_context->initialized))
+    {
+        return 0U;
+    }
     taskENTER_CRITICAL();
-    if (1U == p_context->command_state)
+    if (A_HOSTCAN_COMMAND_WAIT_QUEUE == p_context->command_state)
     {
         *p_command = p_context->command;
-        p_context->command_state = 2U;
+        p_context->command_state = A_HOSTCAN_COMMAND_WAIT_RESULT;
         taken = 1U;
     }
     taskEXIT_CRITICAL();
@@ -570,11 +742,14 @@ uint32_t A_HostCan_TakeCommand(A_HostCan_Context *p_context, A_HostCan_Command *
 uint32_t A_HostCan_CommandActive(A_HostCan_Context *p_context, uint32_t sequence, uint32_t now_ms)
 {
     uint32_t active = 0U; // 有效标志
-    if ((NULL == p_context) || (0U == p_context->initialized)) { return 0U; }
+    if ((NULL == p_context) || (0U == p_context->initialized))
+    {
+        return 0U;
+    }
     taskENTER_CRITICAL();
-    active = ((2U == p_context->command_state) && (sequence == p_context->command.sequence) &&
+    active = ((A_HOSTCAN_COMMAND_WAIT_RESULT == p_context->command_state) && (sequence == p_context->command.sequence) &&
               (0U == p_context->recovering) &&
-              (F_HOSTCAN_ERROR != F_HostCan_GetTransmitState(&p_context->transport)) &&
+              (F_HOSTCAN_ERROR != F_HostCan_GetTransmitState(p_context->p_transport)) &&
               ((now_ms - p_context->command.started_ms) < A_HOSTCAN_COMMAND_TIMEOUT_MS)) ? 1U : 0U;
     taskEXIT_CRITICAL();
     return active;
@@ -588,13 +763,16 @@ uint32_t A_HostCan_CommandActive(A_HostCan_Context *p_context, uint32_t sequence
 uint32_t A_HostCan_CompleteCommand(A_HostCan_Context *p_context, uint32_t sequence, uint8_t code, uint32_t now_ms)
 {
     uint32_t accepted = 0U; // 是否接受结果
-    if ((NULL == p_context) || (0U == p_context->initialized)) { return 0U; }
+    if ((NULL == p_context) || (0U == p_context->initialized))
+    {
+        return 0U;
+    }
     taskENTER_CRITICAL();
-    if ((2U == p_context->command_state) && (sequence == p_context->command.sequence) &&
+    if ((A_HOSTCAN_COMMAND_WAIT_RESULT == p_context->command_state) && (sequence == p_context->command.sequence) &&
         ((now_ms - p_context->command.started_ms) < A_HOSTCAN_COMMAND_TIMEOUT_MS))
     {
         p_context->command_result = code;
-        p_context->command_state = 3U;
+        p_context->command_state = A_HOSTCAN_COMMAND_COMPLETED;
         accepted = 1U;
     }
     taskEXIT_CRITICAL();

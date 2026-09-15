@@ -112,7 +112,7 @@ typedef struct
 
 typedef struct
 {
-    F_EX201_Context function_context;                              // EX-201S功能层上下文
+    F_EX201_Context *p_function;                                   // 同属MFC任务的组帧状态，初始化前绑定
     F_EX201_Response response;                                     // 已解析的当前响应
     A_EX201_State state;                                           // 当前事务状态
     A_EX201_Result result;                                         // 最近一次事务结果
@@ -128,7 +128,7 @@ typedef struct
 
 /*
  * 说明：初始化EX-201S事务模块及其下层模块
- * 输入：p_context EX-201S事务上下文
+ * 输入：p_context 事务上下文，p_function须预先绑定到长期有效的组帧状态
  * 输出：A_EX201_Result 初始化结果
  */
 A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context);

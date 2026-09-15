@@ -24,7 +24,7 @@ void MfcTask_entry(void *pvParameters)
     FSP_PARAMETER_NOT_USED (pvParameters);
 
     A_MFC_DefaultConfig(&g_config);
-    if (0U == A_MFC_Initialize(&p_system->mfc, &g_config, xTaskGetTickCount()))
+    if (0U == A_MFC_Initialize(p_system->p_mfc, &g_config, xTaskGetTickCount()))
     {
         while (1)
         {

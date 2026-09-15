@@ -9,7 +9,7 @@
 #define A_HOSTCAN_CHANNEL_COUNT (6U) // 六个MFC通道
 #define A_HOSTCAN_VERSION_MAJOR (1U) // 固件主版本
 #define A_HOSTCAN_VERSION_MINOR (6U) // 固件次版本
-#define A_HOSTCAN_VERSION_PATCH (0U) // 固件修订版本
+#define A_HOSTCAN_VERSION_PATCH (1U) // 固件修订版本
 #define A_HOSTCAN_VERSION_DATE (260915U) // 固件版本日期YYMMDD
 #define A_HOSTCAN_TX_CAPACITY (32U) // 软件回复队列容量
 #define A_HOSTCAN_MAX_READ_COUNT (16U) // 单次连续读取上限
@@ -59,6 +59,14 @@ typedef enum
     A_HOSTCAN_COMMAND_SET_VALVES    // 完整九阀目标
 } A_HostCan_Operation;
 
+typedef enum
+{
+    A_HOSTCAN_COMMAND_IDLE = 0, // 没有待执行的写请求
+    A_HOSTCAN_COMMAND_WAIT_QUEUE, // CAN任务已接受请求，下一步送入Control命令队列
+    A_HOSTCAN_COMMAND_WAIT_RESULT, // 请求已交出，等待实际执行结果
+    A_HOSTCAN_COMMAND_COMPLETED // 已有结果，等待生成CAN回复
+} A_HostCan_Command_State;
+
 typedef struct
 {
     float actual_flow;          // 实际流量工程值
@@ -100,7 +108,7 @@ typedef struct
 
 typedef struct
 {
-    F_HostCan_Context transport;                        // CAN0传输上下文
+    F_HostCan_Context *p_transport;                     // 同属CAN任务的独立传输状态，初始化前绑定
     A_HostCan_Channel channels[A_HOSTCAN_CHANNEL_COUNT]; // CAN任务从队列更新的六路本地快照
     A_HostCan_System system;                            // 整机及外部阀快照
     A_HostCan_Command command;                         // CAN任务私有请求状态，不供其他任务直接领取
@@ -112,7 +120,7 @@ typedef struct
     uint32_t transmit_started_ms;                       // 硬件发送起始时间
     uint32_t recovering;                                // 恢复退避状态
     uint32_t recovery_ms;                               // 上次恢复尝试时间
-    uint32_t command_state;                             // 0空闲，1待本任务入队，2等待结果，3有结果
+    A_HostCan_Command_State command_state;              // 用枚举名称区分入队、执行和回复阶段
     uint32_t command_result;                            // 用户业务结果码，限定0～255
     uint32_t next_sequence;                             // 内部请求号
     uint32_t executors;                                 // 执行入口接入掩码，默认0
@@ -128,7 +136,7 @@ typedef struct
 
 /*
  * 说明：初始化上位机CAN业务，执行后端默认未就绪
- * 输入：p_context 零初始化且具有任务生命周期的上下文，self_address 主板节点地址0～126
+ * 输入：p_context 长期有效且p_transport已绑定的上下文，self_address 主板节点地址0～126
  * 输出：uint32_t 非0成功，0失败
  */
 uint32_t A_HostCan_Initialize(A_HostCan_Context *p_context, uint8_t self_address);

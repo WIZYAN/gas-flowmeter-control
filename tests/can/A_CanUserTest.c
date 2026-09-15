@@ -36,8 +36,11 @@ static uint8_t A_CanUserTest_LegacyChecksum(const F_CanUser_Frame *p_frame)
  */
 static void A_CanUserTest_Reset(A_HostCan_Context *p_context)
 {
+    static F_HostCan_Context g_transport = {0}; // 单个用例独占的静态驱动状态
     H_CanMock_Reset();
+    memset(&g_transport,0,sizeof(g_transport));
     memset(p_context,0,sizeof(*p_context));
+    p_context->p_transport = &g_transport;
     assert(A_HostCan_Initialize(p_context,1U));
 }
 /*
@@ -324,7 +327,7 @@ static void A_CanUserTest_Application(void)
     for(i=0U;i<16U;i++) { A_CanUserTest_Inject(2U,0U,6U,0U,1U); }
     A_CanUserTest_Pump(&g_context,20U,6U);
     assert(g_context.transmit_count<=A_HOSTCAN_TX_CAPACITY);
-    assert(g_context.transport.hardware.receive_count>0U); // 拥塞时保留请求，不溢出回复队列
+    assert(g_context.p_transport->receive_count>0U); // 拥塞时保留请求，不溢出回复队列
     H_CanMock_Event(CAN_EVENT_TX_COMPLETE);
     H_CanMock_SetAck(1U);
     A_CanUserTest_Pump(&g_context,30U,200U);
