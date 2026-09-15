@@ -52,7 +52,7 @@ H_HostCan_Result H_HostCan_Receive(H_HostCan_Context *p_context, H_HostCan_Frame
     if (0U != p_context->receive_count)
     {
         *p_frame = p_context->receive[p_context->read_index];
-        p_context->read_index = (p_context->read_index + 1U) % H_HOSTCAN_RX_CAPACITY;
+        p_context->read_index = (p_context->read_index + 1U) % H_HOSTCAN_RX_CAPACITY;//从队列当中读取数据
         p_context->receive_count--;
         result = H_HOSTCAN_OK;
     }
@@ -78,7 +78,7 @@ H_HostCan_Result H_HostCan_Send(H_HostCan_Context *p_context, const H_HostCan_Fr
     p_context->transmit.data_length_code = 8U;
     memcpy(p_context->transmit.data, p_frame->data, 8U);
     p_context->transmit_busy = 1U;
-    error = g_can0.p_api->write(g_can0.p_ctrl, H_HOSTCAN_TX_MAILBOX, &p_context->transmit);
+    error = g_can0.p_api->write(g_can0.p_ctrl, H_HOSTCAN_TX_MAILBOX, &p_context->transmit);//transmit为当前帧信息
     if (FSP_SUCCESS != error)
     {
         p_context->transmit_busy = 0U;
@@ -135,8 +135,8 @@ void H_HostCan_Callback(can_callback_args_t *p_args)
             p_context->dropped_frames++;
             return;
         }
-        p_context->receive[p_context->write_index].id = p_args->frame.id;
-        memcpy(p_context->receive[p_context->write_index].data, p_args->frame.data, 8U);
+        p_context->receive[p_context->write_index].id = p_args->frame.id;//保存收到的CAN ID
+        memcpy(p_context->receive[p_context->write_index].data, p_args->frame.data, 8U);//保存收到的8字节数据
         p_context->write_index = (p_context->write_index + 1U) % H_HOSTCAN_RX_CAPACITY;
         p_context->receive_count++;
     }

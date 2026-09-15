@@ -2,6 +2,6 @@
 #define TEST_FREERTOS_H
 #include <stdint.h>
 #define configTICK_RATE_HZ 1000
+#define pdMS_TO_TICKS(ms) ((TickType_t) (ms))
 typedef uint32_t TickType_t;
 #endif
-

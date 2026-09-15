@@ -8,9 +8,9 @@
 
 #define A_HOSTCAN_CHANNEL_COUNT (6U) // 六个MFC通道
 #define A_HOSTCAN_VERSION_MAJOR (1U) // 固件主版本
-#define A_HOSTCAN_VERSION_MINOR (3U) // 固件次版本
+#define A_HOSTCAN_VERSION_MINOR (4U) // 固件次版本
 #define A_HOSTCAN_VERSION_PATCH (0U) // 固件修订版本
-#define A_HOSTCAN_VERSION_DATE (260914U) // 固件版本日期YYMMDD
+#define A_HOSTCAN_VERSION_DATE (260915U) // 固件版本日期YYMMDD
 #define A_HOSTCAN_TX_CAPACITY (32U) // 软件回复队列容量
 #define A_HOSTCAN_MAX_READ_COUNT (16U) // 单次连续读取上限
 #define A_HOSTCAN_COMMAND_TIMEOUT_MS (1500U) // 执行结果等待上限
@@ -142,11 +142,17 @@ void A_HostCan_Process(A_HostCan_Context *p_context, uint32_t now_ms);
  */
 uint32_t A_HostCan_PublishChannel(A_HostCan_Context *p_context, uint32_t index, const A_HostCan_Channel *p_channel);
 /*
- * 说明：发布整机及九阀状态，可由ControlTask调用
+ * 说明：发布整机及九阀状态，可由ControlTask调用；link字段由MfcTask独立发布
  * 输入：p_context 上下文，p_system 完整快照
  * 输出：uint32_t 非0成功
  */
 uint32_t A_HostCan_PublishSystem(A_HostCan_Context *p_context, const A_HostCan_System *p_system);
+/*
+ * 说明：MfcTask只更新下行链路状态，不覆盖ControlTask的整机及阀门字段
+ * 输入：p_context 上下文，link 0待确认、1RS485、2CAN、3故障
+ * 输出：uint32_t 非0成功
+ */
+uint32_t A_HostCan_PublishMfcLink(A_HostCan_Context *p_context, uint32_t link);
 /*
  * 说明：执行任务完成接线、初始化及联锁接入后声明可领取命令的类型
  * 输入：p_context 上下文，executors MFC/VALVE掩码；撤销对应类型时使旧命令失效

@@ -184,6 +184,27 @@ A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context)
 }
 
 /*
+ * 说明：丢弃当前事务并通过功能层恢复串口；恢复失败时不能启动新事务
+ * 输入：p_context EX201上下文
+ * 输出：A_EX201_Result 恢复结果
+ */
+A_EX201_Result A_EX201_Recover(A_EX201_Context *p_context)
+{
+    if (NULL == p_context) { return A_EX201_RESULT_INVALID_ARGUMENT; }
+    if (0U == p_context->initialized) { return A_EX201_RESULT_NOT_INITIALIZED; }
+    if (F_EX201_TRANSPORT_RESULT_OK != F_EX201_Recover(&p_context->function_context))
+    {
+        p_context->state = A_EX201_STATE_ERROR;
+        p_context->result = A_EX201_RESULT_RECOVERY_ERROR;
+        return A_EX201_RESULT_RECOVERY_ERROR;
+    }
+    p_context->state = A_EX201_STATE_IDLE;
+    p_context->result = A_EX201_RESULT_NO_RESULT;
+    p_context->operation = A_EX201_OPERATION_NONE;
+    return A_EX201_RESULT_OK;
+}
+
+/*
  * 说明：启动一个非阻塞EX-201S请求事务
  * 输入：p_context    EX-201S事务上下文
  *      address      流量计通信地址

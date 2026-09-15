@@ -494,11 +494,28 @@ uint32_t A_HostCan_PublishChannel(A_HostCan_Context *p_context, uint32_t index, 
  */
 uint32_t A_HostCan_PublishSystem(A_HostCan_Context *p_context, const A_HostCan_System *p_system)
 {
+    uint32_t link = 0U; // 链路由MfcTask单独发布，保留当前值
     if ((NULL == p_context) || (NULL == p_system) || (0U == p_context->initialized) ||
         (0U == A_HostCan_ValvesLegal(p_system->valve_outputs)) ||
         (0U == A_HostCan_ValvesLegal(p_system->valve_target))) { return 0U; }
     taskENTER_CRITICAL();
+    link = p_context->system.link;
     p_context->system = *p_system;
+    p_context->system.link = link;
+    taskEXIT_CRITICAL();
+    return 1U;
+}
+
+/*
+ * 说明：仅更新链路字段，MfcTask不得覆盖九阀及整机状态
+ * 输入：p_context 上下文，link 下行链路状态
+ * 输出：uint32_t 非0成功
+ */
+uint32_t A_HostCan_PublishMfcLink(A_HostCan_Context *p_context, uint32_t link)
+{
+    if ((NULL == p_context) || (0U == p_context->initialized) || (link > 3U)) { return 0U; }
+    taskENTER_CRITICAL();
+    p_context->system.link = link;
     taskEXIT_CRITICAL();
     return 1U;
 }

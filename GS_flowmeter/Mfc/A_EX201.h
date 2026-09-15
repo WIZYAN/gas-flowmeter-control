@@ -134,6 +134,13 @@ typedef struct
 A_EX201_Result A_EX201_Initialize(A_EX201_Context *p_context);
 
 /*
+ * 说明：由事务所有者中止当前事务并恢复接收，旧结果同时丢弃
+ * 输入：p_context EX201上下文，仅由MfcTask在异常恢复时调用
+ * 输出：A_EX201_Result 恢复结果
+ */
+A_EX201_Result A_EX201_Recover(A_EX201_Context *p_context);
+
+/*
  * 说明：启动一个非阻塞EX-201S请求事务
  * 输入：p_context    EX-201S事务上下文
  *      address      流量计通信地址

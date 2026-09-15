@@ -1,7 +1,5 @@
 #include "MfcTask.h"
-#include "A_EX201.h"
-
-static A_EX201_Context g_ex201_context = {0}; // MfcTask持有的EX-201S事务上下文
+#include "A_System.h"
 
 /*
  * 说明：处理流量计侧SPI通信完成及错误事件
@@ -20,13 +18,13 @@ void H_MFC_CAN_SpiCallback(spi_callback_args_t *p_args)
  */
 void MfcTask_entry(void *pvParameters)
 {
-    A_EX201_Result initialize_result = A_EX201_RESULT_OK; // EX-201S事务模块初始化结果
+    A_System_Context *p_system = A_System_GetContext(); // MfcTask持有其中的六路轮询状态
+    A_MFC_Config g_config = {0}; // 六个通道地址配置
 
     FSP_PARAMETER_NOT_USED (pvParameters);
 
-    initialize_result = A_EX201_Initialize(&g_ex201_context);
-
-    if (A_EX201_RESULT_OK != initialize_result)
+    A_MFC_DefaultConfig(&g_config);
+    if (0U == A_MFC_Initialize(&p_system->mfc, &g_config, xTaskGetTickCount()))
     {
         while (1)
         {
@@ -36,7 +34,7 @@ void MfcTask_entry(void *pvParameters)
 
     while (1)
     {
-        A_EX201_Process(&g_ex201_context, xTaskGetTickCount());
+        A_System_ProcessMfc(p_system, xTaskGetTickCount());
         vTaskDelay(pdMS_TO_TICKS(1U));
     }
 }
