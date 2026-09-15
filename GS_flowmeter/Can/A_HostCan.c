@@ -573,6 +573,8 @@ uint32_t A_HostCan_CommandActive(A_HostCan_Context *p_context, uint32_t sequence
     if ((NULL == p_context) || (0U == p_context->initialized)) { return 0U; }
     taskENTER_CRITICAL();
     active = ((2U == p_context->command_state) && (sequence == p_context->command.sequence) &&
+              (0U == p_context->recovering) &&
+              (F_HOSTCAN_ERROR != F_HostCan_GetTransmitState(&p_context->transport)) &&
               ((now_ms - p_context->command.started_ms) < A_HOSTCAN_COMMAND_TIMEOUT_MS)) ? 1U : 0U;
     taskEXIT_CRITICAL();
     return active;

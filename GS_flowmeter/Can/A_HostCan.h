@@ -8,12 +8,12 @@
 
 #define A_HOSTCAN_CHANNEL_COUNT (6U) // 六个MFC通道
 #define A_HOSTCAN_VERSION_MAJOR (1U) // 固件主版本
-#define A_HOSTCAN_VERSION_MINOR (4U) // 固件次版本
+#define A_HOSTCAN_VERSION_MINOR (5U) // 固件次版本
 #define A_HOSTCAN_VERSION_PATCH (0U) // 固件修订版本
 #define A_HOSTCAN_VERSION_DATE (260915U) // 固件版本日期YYMMDD
 #define A_HOSTCAN_TX_CAPACITY (32U) // 软件回复队列容量
 #define A_HOSTCAN_MAX_READ_COUNT (16U) // 单次连续读取上限
-#define A_HOSTCAN_COMMAND_TIMEOUT_MS (1500U) // 执行结果等待上限
+#define A_HOSTCAN_COMMAND_TIMEOUT_MS (3000U) // 包含在途轮询、RFSM、WSFD及RSFD的总期限
 #define A_HOSTCAN_TX_TIMEOUT_MS (100U) // CAN发送等待上限
 #define A_HOSTCAN_DATA_MAX_AGE_MS (2000U) // 实际流量最大允许数据年龄
 #define A_HOSTCAN_EXECUTOR_MFC (1UL << 0U) // MFC执行入口已接入
@@ -46,7 +46,10 @@ typedef enum
     A_HOSTCAN_CODE_STALE = 0x0C,        // 采集值过期
     A_HOSTCAN_CODE_VALUE = 0x0D,        // 非有限值、数量或编码无效
     A_HOSTCAN_CODE_RANGE = 0x0E,        // 数值超出范围
-    A_HOSTCAN_CODE_EXECUTION_TIMEOUT = 0x0F // 执行结果未在期限内提交
+    A_HOSTCAN_CODE_EXECUTION_TIMEOUT = 0x0F, // 执行结果未在期限内提交
+    A_HOSTCAN_CODE_DOWNSTREAM_PROTOCOL = 0x10, // 下行应答校验、地址或数据格式错误
+    A_HOSTCAN_CODE_DOWNSTREAM_DRIVER = 0x11, // 下行驱动或恢复失败
+    A_HOSTCAN_CODE_VERIFY = 0x12 // 写入后RSFD读回不一致
 } A_HostCan_Code;
 
 typedef enum

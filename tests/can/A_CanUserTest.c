@@ -275,9 +275,9 @@ static void A_CanUserTest_Application(void)
     A_HostCan_Process(&g_context,100U);
     assert(A_HostCan_TakeCommand(&g_context,&g_command));
     assert(A_HostCan_CommandActive(&g_context,g_command.sequence,1599U));
-    assert(!A_HostCan_CommandActive(&g_context,g_command.sequence,1600U));
-    assert(!A_HostCan_CompleteCommand(&g_context,g_command.sequence,0U,1600U));
-    A_CanUserTest_Pump(&g_context,1600U,4U);
+    assert(!A_HostCan_CommandActive(&g_context,g_command.sequence,g_command.started_ms+A_HOSTCAN_COMMAND_TIMEOUT_MS));
+    assert(!A_HostCan_CompleteCommand(&g_context,g_command.sequence,0U,g_command.started_ms+A_HOSTCAN_COMMAND_TIMEOUT_MS));
+    A_CanUserTest_Pump(&g_context,g_command.started_ms+A_HOSTCAN_COMMAND_TIMEOUT_MS,4U);
     A_CanUserTest_Expect(6U,0x0307U,A_HOSTCAN_CODE_EXECUTION_TIMEOUT,1U);
     A_CanUserTest_Inject(2U,0U,1U,0U,1U);
     A_CanUserTest_Pump(&g_context,2011U,4U);

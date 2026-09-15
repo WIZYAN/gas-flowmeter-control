@@ -51,7 +51,7 @@ H_HostCan_Result H_HostCan_Receive(H_HostCan_Context *p_context, H_HostCan_Frame
     FSP_CRITICAL_SECTION_ENTER;
     if (0U != p_context->receive_count)
     {
-        *p_frame = p_context->receive[p_context->read_index];
+        *p_frame = p_context->receive[p_context->read_index];//通过callback将接收数据存入receive
         p_context->read_index = (p_context->read_index + 1U) % H_HOSTCAN_RX_CAPACITY;//从队列当中读取数据
         p_context->receive_count--;
         result = H_HOSTCAN_OK;
