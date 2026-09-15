@@ -1,6 +1,6 @@
 # CAN_USER 上位机通信与参数表
 
-工程版本：V1.5.0.260915。参数表版本：1（地址和线上格式保持兼容）。日期：2026-09-15。
+工程版本：V1.6.0.260915。参数表版本：1（地址和线上格式保持兼容）。日期：2026-09-15。
 
 ## 1. 协议来源与本次范围
 
@@ -151,31 +151,20 @@ CAN层只形成目标，ControlTask必须再次核对当前运行条件、执行
 
 其他值预留。允许执行器提交任意uint8_t结果码，但新增含义必须同步更新本表和上位机。本模块的内部等待状态单独保存，不复用0xFE/0xFF；旧上位机若仍使用它们作为内部超时哨兵，不应随意分配这两个业务码。
 
-## 6. 任务交接与执行确认
+## 6. 任务交接和延迟写回复
 
-```text
-HostCanStack → A_HostCan → F_CanUser / F_HostCan → H_HostCan → FSP CAN0
-                                  ↓
-                          待执行命令及结果槽
-                                  ↓
-                              ControlTask
-                         ↙                 ↘
-                   MfcTask              阀门驱动
-                      ↓
-             EX201 RS485 或下行CAN
-```
+1. HostCanStack通过A_System_ProcessHostCan推进：先接收telemetry_queue更新本地六路缓存，再接收host_result_queue，之后推进CAN协议收发。
+2. 0x02查询读取本任务缓存；MFC采集不会直接写CAN上下文。查询不上命令队列，也不触发临时RS485事务。
+3. 0x01写先验证值、地址、执行能力和设备条件，保存原请求来源；CAN任务自己调用A_HostCan_TakeCommand，按值入host_command_queue。队列满返回BUSY。
+4. CAN任务调用A_HostCan_CommandActive，并分别向control_state_queue和mfc_state_queue覆盖发布请求号、起点、更新时间和valid。两个任务不能竞争同一状态队列。
+5. ControlTask从host_command_queue及自己的状态队列取消息，用A_Control_RequestValid检查有效性，生成A_MFC_Command入command_queue。Control不访问CAN上下文。
+6. MfcTask从command_queue和mfc_state_queue取消息，重新核对设备及分辨率，执行RFSM→单次WSFD→RSFD。读回一致才更新目标有效位。
+7. MFC先将六路完整最新快照入telemetry_queue，再把执行结果入result_queue。Control映射结果并入host_result_queue，满时保留pending_result。
+8. CAN任务取得结果后再次检查telemetry_queue，再调用A_HostCan_CompleteCommand提交结果，最终通过0x06回复原请求来源。以上A_HostCan接口只允许CAN任务调用。
+9. 同时保留一笔未完成写请求；期限3000ms从CAN接受时算起，状态副本有效期20ms。上位机回复等待建议至少3500ms。已启动的物理写入不能被撤回，超时不自动重发。
+10. sequence只用于MCU内部，不增加线上字段；上位机重新发送相同写请求可能形成新的事务，不能保证跨重发的严格一次执行。
 
-1. A_System静态持有A_System_Context，其中包含一个A_HostCan_Context和一个六路A_MFC_Context。任务入口取得长期有效指针，向各模块传参；禁止复制上下文或暴露零散可写全局量。
-2. MfcTask通过A_System_ProcessMfc推进采集，以A_HostCan_PublishChannel在临界区内发布有变化的通道快照；CAN晚启动时自动补发。A_HostCan_PublishMfcLink仅更新链路字段，ControlTask的A_HostCan_PublishSystem保留该字段，双方不会互相覆盖。仅任务调用，不能从ISR调用。
-3. A_System创建两个长度1的静态FreeRTOS队列，MfcTask确认队列及采集上下文已接入后，A_Control只启用A_HOSTCAN_EXECUTOR_MFC。单设备在线和初始化条件仍逐命令检查；阀门执行标志不启用。
-4. ControlTask非阻塞调用A_HostCan_TakeCommand，只能领取一次。流量命令包含通道索引和float32位模式，阀门命令包含归一化后的完整目标。
-5. 执行前调用A_HostCan_CommandActive检查请求号和期限；再执行过程联锁。CAN参数检查不能代替ControlTask过程检查。
-6. ControlTask将解析后的A_MFC_Command按值入命令队列，MfcTask等待当前轮询结束后重新验证条件，读RFSM确认数字来源，换算尾数并调用A_EX201_SetFlow单次写WSFD，然后读RSFD确认。结果按值进入结果队列，ControlTask检查请求号后调用A_HostCan_CompleteCommand。
-7. CompleteCommand只提交结果，不发送CAN；HostCanStack在下一轮用原请求地址和来源节点回复0x06。
-8. 默认同时保留一个未完成写请求；忙时返回0x06业务码。上位机应串行下发修改命令，查询可以继续进行。执行期限3000ms，从CAN接受时算起；超时或CAN恢复后旧请求号失效，不重放旧写命令。上位机等待回复建议至少3500ms。已开始的物理动作不能凭请求失效自动撤销。
-9. 写成功仅表示设定/输出操作已确认，不表示流量达到目标或机械阀到位。超时可能对应结果不确定，需要读回确认。
-10. 应用层不自动重发写请求。线上没有事务序号，上位机重新发送同一请求仍可能形成新事务，不能宣称严格执行一次。
-
+七个静态队列的完整类型、容量和函数位置见[主板运行流程与收发函数说明](主板运行流程与收发函数说明.md)。外部九阀执行尚未接入，本次没有新增阀门驱动。
 ## 7. 资源与验证
 
 接收队列16帧，回复队列32帧；每次最多处理4个请求，单次读取上限16个参数，发送邮箱忙时不阻塞任务。HostCanStack每1ms推进一次，当前工程1000Hz节拍；修改节拍需同步修改毫秒换算。
@@ -211,6 +200,6 @@ CAN实际流量、读回设定及满量程使用该路小数位进行除以10的
 
 工程值乘以10的小数位次方后必须可表示为四位整数尾数，仅容许float32乘法误差，不任意舍入。小数位1时12.3有效，12.34返回0x0D。量程上下限也在MfcTask执行前重新核对。
 
-写超时可能意味着设定已经生效但应答丢失，固件不会自动重发。RSFD读回不同值时返回0x12，并允许通过0x0010～0x0015读取仪器真实设定；目标有效位保持撤销。CAN中断报告的硬件故障会使执行授权检查失败，即使HostCanStack还没进入恢复处理，也不能再启动WSFD。
+写超时可能意味着设定已经生效但应答丢失，固件不会自动重发。RSFD读回不同值时返回0x12，并允许通过0x0010～0x0015读取仪器真实设定；目标有效位保持撤销。CAN任务检测到硬件故障后通过状态队列撤销请求，MFC收到消息后停止后续写入；CAN停止更新超过20ms也不再使用旧授权。CAN物理故障到队列通知之间存在调度延迟，尚未入队的故障不能被MFC提前知道；已发出的WSFD可能已生效。
 
 新增集成测试包含六路写入、忙请求、错误分类、数字来源变化、无提前成功回复、队列满与旧结果关联、超过1500ms的慢响应和时间回绕。详细说明见[流量写入执行说明](流量写入执行说明.md)。

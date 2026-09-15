@@ -12,7 +12,7 @@
  */
 void HostCanStack_entry(void *pvParameters)
 {
-    A_System_Context *p_system = A_System_GetContext(); // 共享组合根，仅本任务处理CAN协议
+    A_System_Context *p_system = A_System_GetContext(); // 队列句柄与本任务上下文入口，不读取其他任务业务数据
     FSP_PARAMETER_NOT_USED (pvParameters);
 
     while (0U == A_HostCan_Initialize(&p_system->host_can, 1U))
@@ -21,7 +21,7 @@ void HostCanStack_entry(void *pvParameters)
     }
     while (1)
     {
-        A_HostCan_Process(&p_system->host_can, (uint32_t) xTaskGetTickCount());
+        A_System_ProcessHostCan(p_system, xTaskGetTickCount());
         vTaskDelay(pdMS_TO_TICKS(1U));
     }
 }

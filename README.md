@@ -2,8 +2,11 @@
 
 更新时间：2026-09-15。当前阶段：已接入上位机CAN_USER、六路EX201自动采集及流量写入/读回确认，尚未完成实板验证。
 
-**当前工程版本：V1.5.0.260915。** 自 V1.1.1.260911 起，工程统一使用下述版本命名规则，并在本文件维护每个版本的变更记录。
+**当前工程版本：V1.6.0.260915。** 自 V1.1.1.260911 起，工程统一使用下述版本命名规则，并在本文件维护每个版本的变更记录。
 
+当前代码运行索引：[主板运行流程与收发函数说明](<doc/Design Document/主板运行流程与收发函数说明.md>)。该文件集中记录启动、三个任务、六路轮询、CAN/RS485收发、流量写入、结果回复、异常恢复及实际使用的函数，作为后续阅读和维护流程的统一入口。
+
+**当前任务通信规则：任务之间的命令、执行结果、六路测量状态及请求有效状态统一使用FreeRTOS队列按值传输。每个任务只读写自己的业务上下文；不得通过结构体指针、共享命令槽或调用另一任务的更新接口来跨任务交换业务数据。** 启动时共同创建、之后保持不变的队列句柄和静态存储属于基础配置。CAN/UART中断与所属任务的驱动缓冲保留现有实现。
 ## 版本命名与变更记录
 
 版本格式为 `V主版本.次版本.修订版本.YYMMDD`，例如 `V1.1.1.260911`。前三段为正常递增的版本号，最后六位为该版本形成日期，`260911` 表示 2026 年 9 月 11 日。
@@ -18,6 +21,7 @@
 
 | 版本 | 日期 | 变更内容 | 关联文件及验证状态 |
 | --- | --- | --- | --- |
+| V1.6.0.260915 | 2026-09-15 | 所有任务间业务交接统一为七个静态FreeRTOS队列：CAN→Control→MFC命令及反向结果、六路完整遥测覆盖队列、两个独立CAN请求状态队列；任务独占各自上下文，保持CAN_USER线上格式和参数表版本1。 | 六路轮询、写链路、CAN协议及新增队列所有权/覆盖/拥塞/状态过期测试通过；RA4M1 Debug构建通过，text=30564、data=320、bss=10432字节。CAN故障通过队列传播，状态有效期20ms，实板调度与栈水位待验证。 |
 | V1.5.0.260915 | 2026-09-15 | 接通CAN_USER流量写请求→ControlTask→静态命令队列→MfcTask→RFSM确认/单次WSFD写入/RSFD读回→静态结果队列→CAN回复；新增A_Control及写执行状态机，保留六路轮询；执行期限改为3000ms，新增0x10～0x12业务错误码。 | 六路写入、分辨率和量程、错误应答、写入已生效但ACK丢失、读回不一致、取消旧请求、队列复制/拥塞、慢响应与时间回绕测试通过；原轮询及CAN测试通过；RA4M1 Debug无新增警告，text=29860、data=320、bss=8904字节。实板、九阀执行、下行CAN及双协议探测未验证或未实现。 |
 | V1.4.0.260915 | 2026-09-15 | 新增A_MFC六路EX201初始化及周期采集，001～006全部轮询；共享唯一事务、每路独立元数据/流量/故障缓存、公平调度、离线重试和硬件恢复；A_System组织任务上下文并向CAN发布真实参数。 | 六台模拟仪器集成测试及原CAN_USER测试通过，覆盖串路、掉线恢复、全部缺席、协议异常、硬件失败和节拍回绕；RA4M1 Debug构建无新增警告，text=27180、data=320、bss=8632字节。无电路，实机未验证；写执行、九阀输出、下行CAN及双后端探测仍待实现。 |
 | V1.3.0.260914 | 2026-09-14 | 基于用户CAN_USER代码接入CAN0：保留扩展ID、8字节布局、自定义校验及读写功能码；新增A_HostCan、F_CanUser、F_HostCan，扩展H_HostCan；建立六路参数、九阀目标与业务结果接口；同步FSP扩展帧和邮箱配置。 | 本机协议、ISR队列、异步回复、联锁目标、拥塞和异常恢复测试通过；RA4M1 Debug构建无新增警告，text=23288、data=320、bss=8112字节；CAN分析仪及实机未验证。当前执行入口默认未就绪，不自动操作MFC或阀门，六通道采集与ControlTask执行仍待接入。 |
@@ -540,3 +544,35 @@ V1.3.0时六通道采集与执行任务尚未接入；V1.4.0完成六路EX201采
 RA4M1 Debug构建通过；text=29860、data=320、bss=8904字节。静态单函数栈帧A_System_ProcessMfc为128字节，A_Control_Process为80字节，A_MFC_ProcessCommand为32字节；这些不是完整调用链峰值。三个任务保留1024字节栈，真实栈水位、临界区时长和设备通信仍待实板验证。
 
 建议提交名称：`feat(control): V1.5.0.260915 接通CAN流量写入与EX201读回确认`。由用户自行提交推送，包含本版和上一版尚未跟踪的新增源码及测试文件。
+
+2026-09-15 文档补充（R1，适用代码V1.5.0.260915）：新增[主板运行流程与收发函数说明](<doc/Design Document/主板运行流程与收发函数说明.md>)，集中整理完整运行调用链、收发阶段、队列与缓存、操作示例和调试观察点；按当前函数定义核对。本次为文档整理，固件版本和行为保持不变。建议提交名称：`docs: 汇总主板运行流程与收发函数调用链`。
+
+## V1.6.0 任务业务统一通过队列交接
+
+本次按用户要求替换V1.5.0的跨任务共享缓存、命令槽领取及直接结果提交。HostCanStack、ControlTask、MfcTask各自独占业务上下文；A_System_Initialize集中创建七个静态队列，启动成功后队列句柄不再改变。没有新增任务，也没有改变CAN_USER线上协议、参数地址或六路轮询周期。
+
+| 队列 | 方向 / 内容 | 长度与满时处理 |
+| --- | --- | --- |
+| host_command_queue | CAN→Control，A_HostCan_Command | 1，满则返回BUSY |
+| command_queue | Control→MFC，A_MFC_Command | 1，满则形成BUSY结果 |
+| result_queue | MFC→Control，A_MFC_CommandResult | 1，MFC保留DONE等待 |
+| host_result_queue | Control→CAN，A_Control_Host_Result | 1，Control保留pending_result等待 |
+| telemetry_queue | MFC→CAN，A_System_Telemetry含六路、link、ready | 1，覆盖为最新完整快照 |
+| control_state_queue | CAN→Control，A_Control_Host_State | 1，覆盖为最新请求状态 |
+| mfc_state_queue | CAN→MFC，A_Control_Host_State | 1，覆盖为最新请求状态 |
+
+遥测生产缓冲、队列存储和CAN接收缓冲分别持有独立副本；不能将六个单路消息轮流写入同一覆盖队列。CAN暂停期间六路采集继续，CAN缓存直到本任务出队才改变。CAN查询仍读取自己的最新缓存，上位机仍通过周期0x02查询取数，未增加主动上报。
+
+命令路径：A_System_ProcessHostCan在CAN任务内提取请求并入host_command_queue，Control出队后检查状态、转换工程值并入command_queue，MFC出队执行RFSM→WSFD→RSFD。结果反向经过result_queue及host_result_queue，CAN任务自己调用A_HostCan_CompleteCommand后回复。确认数据先入遥测队列；CAN收到结果后再次检查遥测，防止抢占时序导致先回复成功、后更新数据。
+
+CAN请求有效状态分别送给两个消费者，包含请求号、请求起点、更新时间和valid。A_Control_RequestValid同时校验消息匹配、20ms状态有效期和3000ms原请求期限。CAN故障/撤销需经CAN任务发布后才由其他任务获知，存在调度延迟；不再直接读取CAN硬件状态来保证“CAN任务尚未处理bus-off时立即禁止WSFD”。CAN不再更新状态时，MFC在状态超期后的下一次运行中退出。已经发出的WSFD不能撤回，也不自动重放。20ms配置及中断/任务调度时长需要实板核对。
+
+相关源码：[A_System.c](GS_flowmeter/src/A_System.c)、[A_System.h](GS_flowmeter/src/A_System.h)、[A_Control.c](GS_flowmeter/src/A_Control.c)、[A_Control.h](GS_flowmeter/src/A_Control.h)、[CAN任务入口](GS_flowmeter/src/HostCanStack_entry.c)。A_HostCan的PublishChannel、PublishSystem、PublishMfcLink、SetExecutors、TakeCommand、CommandActive、CompleteCommand接口均限定CAN任务自身调用，其他任务必须先入队。外部九阀执行和下行CAN后端仍未接入。
+
+运行文档R2：[主板运行流程与收发函数说明](<doc/Design Document/主板运行流程与收发函数说明.md>)；同时更新六路轮询说明、流量写入执行说明和CAN_USER参数表中的任务交接内容。V1.2.0流程图保留为历史方案并增加当前实现入口，不将其规划状态视为已实现。
+
+验证：`./tests/mfc/run.ps1`和`./tests/can/run.ps1`通过。新增用例覆盖六路完整快照覆盖、CAN停止消费时缓存所有权、两个状态消费者独立出队、CAN命令队列满、Control到CAN结果队列满时保留结果、过期状态阻止WSFD及跨节拍回绕、三任务全部六种交替顺序；原六路轮询和写故障测试继续通过。bus-off取消用例按新语义验证CAN任务发布失效后禁止写入，另验证状态超期时不再使用旧授权。
+
+RA4M1 Debug构建通过，无新增警告；text=30564、data=320、bss=10432字节，比V1.5.0增加1528字节bss。静态单函数栈帧：A_System_ProcessHostCan为64字节、A_System_ProcessMfc为80字节、A_System_ProcessControl为40字节、A_Control_Process为72字节；这些不是完整调用链或中断嵌套峰值。三任务栈仍各1024字节。硬件尚未具备，未做实板通信、队列调度延迟或栈水位验证。
+
+建议提交名称：`refactor(rtos): V1.6.0.260915 统一任务间队列通信`。由用户自行提交推送。

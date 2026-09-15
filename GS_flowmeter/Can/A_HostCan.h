@@ -8,7 +8,7 @@
 
 #define A_HOSTCAN_CHANNEL_COUNT (6U) // 六个MFC通道
 #define A_HOSTCAN_VERSION_MAJOR (1U) // 固件主版本
-#define A_HOSTCAN_VERSION_MINOR (5U) // 固件次版本
+#define A_HOSTCAN_VERSION_MINOR (6U) // 固件次版本
 #define A_HOSTCAN_VERSION_PATCH (0U) // 固件修订版本
 #define A_HOSTCAN_VERSION_DATE (260915U) // 固件版本日期YYMMDD
 #define A_HOSTCAN_TX_CAPACITY (32U) // 软件回复队列容量
@@ -101,9 +101,9 @@ typedef struct
 typedef struct
 {
     F_HostCan_Context transport;                        // CAN0传输上下文
-    A_HostCan_Channel channels[A_HOSTCAN_CHANNEL_COUNT]; // 六路只读快照
+    A_HostCan_Channel channels[A_HOSTCAN_CHANNEL_COUNT]; // CAN任务从队列更新的六路本地快照
     A_HostCan_System system;                            // 整机及外部阀快照
-    A_HostCan_Command command;                         // 当前唯一写请求
+    A_HostCan_Command command;                         // CAN任务私有请求状态，不供其他任务直接领取
     F_CanUser_Message requester;                        // 延迟回复的原请求来源
     F_CanUser_Frame transmit[A_HOSTCAN_TX_CAPACITY];    // HostCan任务独占发送队列
     uint32_t transmit_read;                             // 队列读索引
@@ -112,7 +112,7 @@ typedef struct
     uint32_t transmit_started_ms;                       // 硬件发送起始时间
     uint32_t recovering;                                // 恢复退避状态
     uint32_t recovery_ms;                               // 上次恢复尝试时间
-    uint32_t command_state;                             // 0空闲，1待领取，2执行中，3有结果
+    uint32_t command_state;                             // 0空闲，1待本任务入队，2等待结果，3有结果
     uint32_t command_result;                            // 用户业务结果码，限定0～255
     uint32_t next_sequence;                             // 内部请求号
     uint32_t executors;                                 // 执行入口接入掩码，默认0
@@ -139,43 +139,43 @@ uint32_t A_HostCan_Initialize(A_HostCan_Context *p_context, uint8_t self_address
  */
 void A_HostCan_Process(A_HostCan_Context *p_context, uint32_t now_ms);
 /*
- * 说明：发布一路MFC快照，可由MfcTask调用；不得从ISR调用
+ * 说明：CAN任务出队后更新一路本地快照，禁止其他任务或ISR调用
  * 输入：p_context 上下文，index 通道索引0～5，p_channel 完整快照
  * 输出：uint32_t 非0成功
  */
 uint32_t A_HostCan_PublishChannel(A_HostCan_Context *p_context, uint32_t index, const A_HostCan_Channel *p_channel);
 /*
- * 说明：发布整机及九阀状态，可由ControlTask调用；link字段由MfcTask独立发布
+ * 说明：仅CAN任务更新本地整机快照；未来Control状态必须先经队列传入
  * 输入：p_context 上下文，p_system 完整快照
  * 输出：uint32_t 非0成功
  */
 uint32_t A_HostCan_PublishSystem(A_HostCan_Context *p_context, const A_HostCan_System *p_system);
 /*
- * 说明：MfcTask只更新下行链路状态，不覆盖ControlTask的整机及阀门字段
+ * 说明：仅CAN任务从遥测消息取得链路后更新本地字段，不覆盖整机及阀门字段
  * 输入：p_context 上下文，link 0待确认、1RS485、2CAN、3故障
  * 输出：uint32_t 非0成功
  */
 uint32_t A_HostCan_PublishMfcLink(A_HostCan_Context *p_context, uint32_t link);
 /*
- * 说明：执行任务完成接线、初始化及联锁接入后声明可领取命令的类型
+ * 说明：仅CAN任务根据队列收到的就绪状态更新执行能力，禁止跨任务调用
  * 输入：p_context 上下文，executors MFC/VALVE掩码；撤销对应类型时使旧命令失效
  * 输出：无
  */
 void A_HostCan_SetExecutors(A_HostCan_Context *p_context, uint32_t executors);
 /*
- * 说明：ControlTask非阻塞领取一个写请求；流量操作再交给MfcTask
+ * 说明：仅CAN任务提取私有待发请求，再按值送入host_command_queue
  * 输入：p_context 上下文，p_command 输出命令
  * 输出：uint32_t 非0表示取到命令；不得从ISR调用
  */
 uint32_t A_HostCan_TakeCommand(A_HostCan_Context *p_context, A_HostCan_Command *p_command);
 /*
- * 说明：执行前检查命令是否仍有效，超时命令不得开始执行
+ * 说明：仅CAN任务检查本地请求有效性，再向两个状态队列发布结果
  * 输入：p_context 上下文，sequence 内部请求号，now_ms 当前毫秒时间
  * 输出：uint32_t 非0有效
  */
 uint32_t A_HostCan_CommandActive(A_HostCan_Context *p_context, uint32_t sequence, uint32_t now_ms);
 /*
- * 说明：提交实际执行结果；入队成功不能作为执行成功
+ * 说明：仅CAN任务接收host_result_queue后提交实际结果，不允许跨任务调用
  * 输入：p_context 上下文，sequence 内部请求号，code 0～255业务结果，now_ms 当前毫秒时间
  * 输出：uint32_t 非0接收；已超时或旧请求的结果返回0
  */

@@ -304,7 +304,7 @@ static void A_HostCan_HandleRequest(A_HostCan_Context *p_context, const F_CanUse
     }
     if (F_CANUSER_WRITE == p_request->function)
     {
-        code = A_HostCan_StartWrite(p_context, p_request, now_ms);
+        code = A_HostCan_StartWrite(p_context, p_request, now_ms);//生成受控请求
         if (A_HOSTCAN_CODE_OK != code)
         {
             A_HostCan_RecordError(p_context, p_request, address, (uint32_t) code);
@@ -543,7 +543,7 @@ void A_HostCan_SetExecutors(A_HostCan_Context *p_context, uint32_t executors)
 }
 
 /*
- * 说明：执行任务非阻塞领取请求，只允许领取一次
+ * 说明：CAN任务提取本地待发送请求，只允许入队一次
  * 输入：p_context 上下文，p_command 输出命令
  * 输出：uint32_t 非0取得请求
  */
@@ -563,7 +563,7 @@ uint32_t A_HostCan_TakeCommand(A_HostCan_Context *p_context, A_HostCan_Command *
 }
 
 /*
- * 说明：执行前核对请求号和期限
+ * 说明：CAN任务核对本地请求号、硬件状态和期限，结果通过队列发布
  * 输入：p_context 上下文，sequence 请求号，now_ms 当前时间
  * 输出：uint32_t 非0仍有效
  */
