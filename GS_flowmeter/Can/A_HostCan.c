@@ -513,7 +513,7 @@ static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now
         }
     }
     if (0U != p_context->transmit_count)
-    {
+    {//执行函数层发送
         state = F_HostCan_Send(p_context->p_transport, &p_context->transmit[p_context->transmit_read]);
         if (F_HOSTCAN_OK == state)
         {

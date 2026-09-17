@@ -571,7 +571,7 @@ F_EX201_TransportResult F_EX201_SendFrame(
     hardware_result = H_EX201_Send(
         &p_context->hardware_context,
         p_data,
-        data_length);
+        data_length);//底层通过串口发送
 
     return F_EX201_MapHardwareResult(hardware_result);
 }

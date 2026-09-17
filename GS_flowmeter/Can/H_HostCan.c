@@ -72,7 +72,7 @@ H_HostCan_Result H_HostCan_Receive(H_HostCan_Context *p_context, H_HostCan_Frame
 }
 
 /*
- * 说明：启动非阻塞发送，帧缓冲保持到完成中断
+ * 说明：封装帧 调用can_write 发送两种构造帧data_frame/remote_frame,data_frame是发送数据，remote_frame是请求数据
  * 输入：p_context 上下文，p_frame 输入帧
  * 输出：H_HostCan_Result 启动结果
  */
@@ -90,9 +90,9 @@ H_HostCan_Result H_HostCan_Send(H_HostCan_Context *p_context, const H_HostCan_Fr
     }
     memset(&p_context->transmit, 0, sizeof(p_context->transmit));
     p_context->transmit.id = p_frame->id;
-    p_context->transmit.id_mode = CAN_ID_MODE_EXTENDED;
-    p_context->transmit.type = CAN_FRAME_TYPE_DATA;
-    p_context->transmit.data_length_code = 8U;
+    p_context->transmit.id_mode = CAN_ID_MODE_EXTENDED;//IDE
+    p_context->transmit.type = CAN_FRAME_TYPE_DATA;//RTR
+    p_context->transmit.data_length_code = 8U;//DLC
     memcpy(p_context->transmit.data, p_frame->data, 8U);
     p_context->transmit_busy = 1U;
     error = g_can0.p_api->write(g_can0.p_ctrl, H_HOSTCAN_TX_MAILBOX, &p_context->transmit);//transmit为当前帧信息

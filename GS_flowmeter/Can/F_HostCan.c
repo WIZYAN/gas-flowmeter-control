@@ -102,8 +102,8 @@ F_HostCan_Result F_HostCan_Send(F_HostCan_Context *p_context, const F_CanUser_Fr
     {
         return F_HOSTCAN_ERROR;
     }
-    g_frame.id = p_frame->id;
-    memcpy(g_frame.data, p_frame->data, 8U);
+    g_frame.id = p_frame->id;//将功能层id赋值给硬件层
+    memcpy(g_frame.data, p_frame->data, 8U);//将功能层数据赋值给硬件层，硬件层调动can_write
     return F_HostCan_MapResult(H_HostCan_Send(p_context, &g_frame));
 }
 

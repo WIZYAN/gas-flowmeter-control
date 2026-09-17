@@ -28,6 +28,7 @@ Build_Verify/
 # Local IDE and temporary data
 p2/
 tmp/
+tests/
 temp/
 __pycache__/
 *.py[cod]

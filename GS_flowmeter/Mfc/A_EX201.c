@@ -255,7 +255,7 @@ A_EX201_Result A_EX201_StartRequest(
         data_length,
         p_context->request_frame,
         sizeof(p_context->request_frame),
-        &request_length);
+        &request_length);//按照协议将帧组建起来 然后存入request_frame
 
     if (F_EX201_PROTOCOL_RESULT_INVALID_ARGUMENT == protocol_result)
     {
@@ -270,7 +270,7 @@ A_EX201_Result A_EX201_StartRequest(
     send_result = F_EX201_SendFrame(
         p_context->p_function,
         p_context->request_frame,
-        request_length);
+        request_length);//通过上面的组帧函数，把组帧信息request_frame 发送出去
 
     if (F_EX201_TRANSPORT_RESULT_BUSY == send_result)
     {
