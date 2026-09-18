@@ -286,6 +286,7 @@ void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now)
 
 /*
  * 说明：MFC任务读取命令及CAN有效状态队列，推进事务并覆盖发布六路完整快照
+ *     A_MFC_Process负责处理六路周期轮询，A_MFC_ProcessCommand处理CAN的命令
  * 输入：p_context 板级上下文，now 当前节拍
  * 输出：无
  */
@@ -319,12 +320,12 @@ void A_System_ProcessMfc(A_System_Context *p_context, TickType_t now)
         }
         // 第2步：取CAN有效状态并检查。只有START阶段需要把检查与发送启动连在一起。
         taskENTER_CRITICAL(); // 保证最后一次状态出队检查与WSFD非阻塞启动连续执行
-        (void) xQueueReceive(p_context->mfc_state_queue, &p_context->mfc_host_state, 0U);
+        (void) xQueueReceive(p_context->mfc_state_queue, &p_context->mfc_host_state, 0U);//从hostcan和mfc之间的队列取出数据
         authorized = A_Control_RequestValid(&p_context->mfc_host_state,
             p_mfc->write_command.sequence, p_mfc->write_command.started_tick, now);
         if (p_mfc->write_state == A_MFC_WRITE_START)
         {
-            A_MFC_ProcessCommand(p_mfc, now, authorized);
+            A_MFC_ProcessCommand(p_mfc, now, authorized);//can的主动事务
             taskEXIT_CRITICAL();
         }
         else

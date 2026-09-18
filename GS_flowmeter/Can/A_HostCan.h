@@ -108,12 +108,12 @@ typedef struct
 
 typedef struct
 {
-    F_HostCan_Context *p_transport;                     // 同属CAN任务的独立传输状态，初始化前绑定
+    F_HostCan_Context *p_transport;                     //底层can任务
     A_HostCan_Channel channels[A_HOSTCAN_CHANNEL_COUNT]; // CAN任务从队列更新的六路本地快照
-    A_HostCan_System system;                            // 整机及外部阀快照
+    A_HostCan_System system;                            // 整机及外部阀快照 channels和system查询数据缓存
     A_HostCan_Command command;                         // CAN任务私有请求状态，不供其他任务直接领取
     F_CanUser_Message requester;                        // 延迟回复的原请求来源
-    F_CanUser_Frame transmit[A_HOSTCAN_TX_CAPACITY];    // HostCan任务独占发送队列
+    F_CanUser_Frame transmit[A_HOSTCAN_TX_CAPACITY];    // HostCan任务独占发送队列，封装好的帧
     uint32_t transmit_read;                             // 队列读索引
     uint32_t transmit_count;                            // 队列占用数
     uint32_t transmit_active;                           // 队首已交给硬件
@@ -131,7 +131,7 @@ typedef struct
     uint32_t ignored_frames;                            // 非本机或未使用功能帧计数
     uint32_t failed_transmissions;                      // 发送失败或超时计数
     uint32_t initialized;                               // 应用初始化标志
-    uint8_t self_address;                               // Type_FLOW节点地址，默认由任务传入1
+    uint8_t self_address;                               // Type_FLOW节点地址，默认由任务传入1 initialized self_address 属于模块化 身份识别
 } A_HostCan_Context;
 
 /*
