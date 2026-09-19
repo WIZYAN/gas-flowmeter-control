@@ -8,9 +8,11 @@
 
 #define A_HOSTCAN_CHANNEL_COUNT (6U) // 六个MFC通道
 #define A_HOSTCAN_VERSION_MAJOR (1U) // 固件主版本
-#define A_HOSTCAN_VERSION_MINOR (6U) // 固件次版本
-#define A_HOSTCAN_VERSION_PATCH (1U) // 固件修订版本
-#define A_HOSTCAN_VERSION_DATE (260915U) // 固件版本日期YYMMDD
+#define A_HOSTCAN_VERSION_MINOR (7U) // 固件次版本
+#define A_HOSTCAN_VERSION_PATCH (0U) // 固件修订版本
+#define A_HOSTCAN_VERSION_DATE (260919U) // 固件版本日期YYMMDD
+#define A_HOSTCAN_PARAMETER_VERSION (2U) // V9改为只读，联动写入口统一为V7
+#define A_HOSTCAN_FAULT_VALVE_DRIVER (1UL << 0U) // 九阀GPIO驱动故障，实际输出未经确认
 #define A_HOSTCAN_TX_CAPACITY (32U) // 软件回复队列容量
 #define A_HOSTCAN_MAX_READ_COUNT (16U) // 单次连续读取上限
 #define A_HOSTCAN_COMMAND_TIMEOUT_MS (3000U) // 包含在途轮询、RFSM、WSFD及RSFD的总期限
@@ -49,7 +51,8 @@ typedef enum
     A_HOSTCAN_CODE_EXECUTION_TIMEOUT = 0x0F, // 执行结果未在期限内提交
     A_HOSTCAN_CODE_DOWNSTREAM_PROTOCOL = 0x10, // 下行应答校验、地址或数据格式错误
     A_HOSTCAN_CODE_DOWNSTREAM_DRIVER = 0x11, // 下行驱动或恢复失败
-    A_HOSTCAN_CODE_VERIFY = 0x12 // 写入后RSFD读回不一致
+    A_HOSTCAN_CODE_VERIFY = 0x12, // 写入后RSFD读回不一致
+    A_HOSTCAN_CODE_VALVE_DRIVER = 0x13 // 外部阀GPIO操作失败
 } A_HostCan_Code;
 
 typedef enum

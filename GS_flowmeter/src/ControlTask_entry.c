@@ -2,7 +2,7 @@
 #include "A_System.h"
 
 /*
- * 说明：通过静态队列协调CAN流量写入及MFC执行结果
+ * 说明：每1ms推进九阀吸合/保持，并通过静态队列协调CAN请求及MFC结果
  * 输入：pvParameters FSP任务参数
  * 输出：无
  */

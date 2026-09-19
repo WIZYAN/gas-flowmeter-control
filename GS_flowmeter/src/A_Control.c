@@ -5,15 +5,15 @@
 #include "A_Control.h"
 
 /*
- * 说明：绑定五个交接队列，禁止重置运行中的控制上下文
+ * 说明：绑定六个交接队列并初始化九阀，禁止重置运行中的控制上下文
  * 输入：p_context 上下文，p_queues 队列句柄集合
  * 输出：uint32_t 非0成功
  */
 uint32_t A_Control_Initialize(A_Control_Context *p_context, const A_Control_Queue_Set *p_queues)
 {
-    if (NULL == p_context || NULL == p_queues || NULL == p_queues->host_command ||
+    if (NULL == p_context || NULL == p_queues || NULL == p_context->p_valve || NULL == p_queues->host_command ||
         NULL == p_queues->host_result || NULL == p_queues->command ||
-        NULL == p_queues->result || NULL == p_queues->host_state)
+        NULL == p_queues->result || NULL == p_queues->host_state || NULL == p_queues->valve_state)
     {
         return 0U;
     }
@@ -22,6 +22,7 @@ uint32_t A_Control_Initialize(A_Control_Context *p_context, const A_Control_Queu
         return 1U;
     }
     p_context->queues = *p_queues;
+    (void) A_Valve_Initialize(p_context->p_valve); // 阀故障通过状态发布，不能阻止MFC任务继续采集
     p_context->initialized = 1U;
     return 1U;
 }
@@ -96,6 +97,43 @@ static uint8_t A_Control_MapResult(A_MFC_CommandCode code)
 }
 
 /*
+ * 说明：映射阀门执行结果，不把GPIO成功解释为机械阀位确认
+ * 输入：result 阀门模块结果
+ * 输出：uint32_t CAN_USER业务码
+ */
+static uint32_t A_Control_MapValveResult(F_Valve_Result result)
+{
+    switch (result)
+    {
+        case F_VALVE_OK:
+            return A_HOSTCAN_CODE_OK;
+        case F_VALVE_INVALID_TARGET:
+            return A_HOSTCAN_CODE_INTERLOCK;
+        case F_VALVE_DRIVER_ERROR:
+            return A_HOSTCAN_CODE_VALVE_DRIVER;
+        default:
+            return A_HOSTCAN_CODE_NOT_READY;
+    }
+}
+
+/*
+ * 说明：先发布本任务输出快照，再发送结果，CAN查询不访问Control私有状态
+ * 输入：p_context 本任务上下文
+ * 输出：无，队列长度1，始终覆盖为最新完整状态
+ */
+static void A_Control_PublishValveState(A_Control_Context *p_context)
+{
+    A_Valve_Context *p_valve = p_context->p_valve; // 本任务独占状态
+    A_HostCan_System g_snapshot = {0}; // 队列复制内容，不传上下文指针
+    g_snapshot.valve_outputs = p_valve->outputs;
+    g_snapshot.valve_target = p_valve->target;
+    g_snapshot.valve_state = p_valve->fault ? 2U : (p_valve->pull_in_mask ? 1U : 0U);
+    g_snapshot.valves_valid = (p_valve->initialized && !p_valve->fault) ? 1U : 0U;
+    g_snapshot.faults = p_valve->fault ? A_HOSTCAN_FAULT_VALVE_DRIVER : 0U;
+    (void) xQueueOverwrite(p_context->queues.valve_state, &g_snapshot);
+}
+
+/*
  * 说明：只通过队列收发；结果未入队时保留，不覆盖且不领取下一笔命令
  * 输入：p_context 本任务独占上下文，now 当前节拍
  * 输出：无
@@ -105,6 +143,8 @@ void A_Control_Process(A_Control_Context *p_context, TickType_t now)
     A_HostCan_Command g_host_command = {0}; // CAN已解析请求
     A_MFC_Command g_command = {0}; // 发给MfcTask的命令副本
     A_MFC_CommandResult g_result = {0}; // 收到的执行结果
+    F_Valve_Result valve_result = F_VALVE_OK; // 本轮阀门执行状态
+    uint32_t valve_cancelled = 0U; // 未完成阀请求是否失效
     if (NULL == p_context || !p_context->initialized)
     {
         return;
@@ -112,10 +152,32 @@ void A_Control_Process(A_Control_Context *p_context, TickType_t now)
     // 第1步：从CAN状态队列取最新消息。队列为空时保留本地副本，随后检查其年龄。
     (void) xQueueReceive(p_context->queues.host_state, &p_context->host_state, 0U);
 
+    // 阀门计时必须先运行；CAN队列拥塞或MFC写入等待都不能阻止200ms后撤销12V。
+    if (p_context->active_sequence != 0U && p_context->active_operation != A_HOSTCAN_COMMAND_SET_FLOW &&
+        !A_Control_RequestValid(&p_context->host_state, p_context->active_sequence,
+            p_context->active_started, now))
+    {
+        (void) A_Valve_Cancel(p_context->p_valve, now);
+        valve_cancelled = 1U;
+    }
+    valve_result = A_Valve_Process(p_context->p_valve, now);
+    if (p_context->active_sequence != 0U && p_context->active_operation != A_HOSTCAN_COMMAND_SET_FLOW &&
+        (valve_cancelled || valve_result != F_VALVE_OK || p_context->p_valve->pull_in_mask == 0U))
+    {
+        p_context->pending_result.sequence = p_context->active_sequence;
+        p_context->pending_result.code = A_Control_MapValveResult(valve_result);
+        if (valve_cancelled && valve_result == F_VALVE_OK)
+        {
+            p_context->pending_result.code = A_HOSTCAN_CODE_EXECUTION_TIMEOUT;
+        }
+        p_context->result_pending = 1U;
+        p_context->active_sequence = 0U;
+    }
+
     // 第2步：先收上一笔MFC执行结果；已有结果尚未送给CAN时，不能覆盖它。
     if (!p_context->result_pending && pdPASS == xQueueReceive(p_context->queues.result, &g_result, 0U))
     {
-        if (g_result.sequence == p_context->active_sequence)
+        if (g_result.sequence == p_context->active_sequence && p_context->active_operation == A_HOSTCAN_COMMAND_SET_FLOW)
         {
             p_context->pending_result.sequence = g_result.sequence;
             p_context->pending_result.code = A_Control_MapResult(g_result.code);
@@ -123,6 +185,7 @@ void A_Control_Process(A_Control_Context *p_context, TickType_t now)
             p_context->active_sequence = 0U;
         }
     }
+    A_Control_PublishValveState(p_context);
     // 第3步：把执行结果送给CAN任务。队列满就退出本轮，下次继续尝试。
     if (p_context->result_pending)
     {
@@ -132,7 +195,7 @@ void A_Control_Process(A_Control_Context *p_context, TickType_t now)
         }
         p_context->result_pending = 0U;
     }
-    // 第4步：上一笔还在MFC执行时，暂不领取新的CAN命令。
+    // 第4步：上一笔MFC写入或阀门吸合尚未完成时，暂不领取新的CAN命令。
     if (p_context->active_sequence != 0U)
     {
         return;
@@ -148,6 +211,25 @@ void A_Control_Process(A_Control_Context *p_context, TickType_t now)
     {
         p_context->pending_result.code = A_HOSTCAN_CODE_EXECUTION_TIMEOUT;
         p_context->result_pending = 1U;
+        return;
+    }
+    if (g_host_command.operation == A_HOSTCAN_COMMAND_SET_VALVE ||
+        g_host_command.operation == A_HOSTCAN_COMMAND_SET_VALVES)
+    {
+        // 此处再检查联锁；CAN仅形成目标，只有ControlTask可以驱动阀门。
+        valve_result = A_Valve_SetTarget(p_context->p_valve, g_host_command.valve_target, now);
+        A_Control_PublishValveState(p_context);
+        if (valve_result == F_VALVE_OK && p_context->p_valve->pull_in_mask != 0U)
+        {
+            p_context->active_sequence = g_host_command.sequence;
+            p_context->active_operation = g_host_command.operation;
+            p_context->active_started = g_host_command.started_ms;
+        }
+        else
+        {
+            p_context->pending_result.code = A_Control_MapValveResult(valve_result);
+            p_context->result_pending = 1U;
+        }
         return;
     }
     if (g_host_command.operation != A_HOSTCAN_COMMAND_SET_FLOW)
@@ -167,6 +249,7 @@ void A_Control_Process(A_Control_Context *p_context, TickType_t now)
     if (pdPASS == xQueueSendToBack(p_context->queues.command, &g_command, 0U))
     {
         p_context->active_sequence = g_command.sequence;
+        p_context->active_operation = A_HOSTCAN_COMMAND_SET_FLOW;
     }
     else
     {

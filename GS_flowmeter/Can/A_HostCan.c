@@ -137,15 +137,16 @@ static A_HostCan_Code A_HostCan_ReadParameter(A_HostCan_Context *p_context, uint
                 break;
             case 0x0104U:
             case 0x0105U:
-                if (0U == g_system.valves_valid)
+                if (0U == g_system.valves_valid &&
+                    (address == 0x0104U || g_system.valve_state != 2U))
                 {
                     return A_HOSTCAN_CODE_NOT_READY;
                 }
                 value = (0x0104U == address) ? g_system.valve_outputs : g_system.valve_state;
                 break;
             case 0x0106U:
-                value = 1U;
-                break; // 本项目参数表版本1
+                value = A_HOSTCAN_PARAMETER_VERSION;
+                break; // 版本2：V9只读，V7作为联动控制入口
             case 0x0108U:
                 value = A_HOSTCAN_VERSION_MAJOR;
                 break;
@@ -293,7 +294,7 @@ static A_HostCan_Code A_HostCan_StartWrite(A_HostCan_Context *p_context,
     {
         return A_HOSTCAN_CODE_ADDRESS;
     }
-    if (p_request->address < 0x0200U)
+    if (p_request->address < 0x0200U || p_request->address == 0x0308U)
     {
         return A_HOSTCAN_CODE_READ_ONLY;
     }
@@ -353,7 +354,7 @@ static A_HostCan_Code A_HostCan_StartWrite(A_HostCan_Context *p_context,
         else
         {
             bit = 1UL << g_command.index;
-            if ((6U == g_command.index) || (8U == g_command.index))
+            if (6U == g_command.index)
             {
                 g_command.valve_target &= ~A_HOSTCAN_VALVE_GROUP79;
                 if (0U != p_request->value)

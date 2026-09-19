@@ -423,7 +423,7 @@
       <property id="module.driver.transfer.interrupt" value="module.driver.transfer.interrupt.interrupt_end"/>
       <property id="module.driver.transfer.length" value="0"/>
       <property id="module.driver.transfer.num_blocks" value="0"/>
-      <property id="module.driver.transfer.activation_source" value="_disabled"/>
+      <property id="module.driver.transfer.activation_source" value="_interrupt.event.spi1.txi"/>
     </module>
     <module id="module.driver.transfer_on_dtc.563897293">
       <property id="module.driver.transfer.name" value="g_transfer1"/>
@@ -437,7 +437,7 @@
       <property id="module.driver.transfer.interrupt" value="module.driver.transfer.interrupt.interrupt_end"/>
       <property id="module.driver.transfer.length" value="0"/>
       <property id="module.driver.transfer.num_blocks" value="0"/>
-      <property id="module.driver.transfer.activation_source" value="_disabled"/>
+      <property id="module.driver.transfer.activation_source" value="_interrupt.event.spi1.rxi"/>
     </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
@@ -673,9 +673,9 @@
       <configSetting altId="p400.output.low" configurationId="p400"/>
       <configSetting altId="p400.gpio_mode.gpio_mode_out.low" configurationId="p400.gpio_mode"/>
       <configSetting altId="p401.output.low" configurationId="p401"/>
-      <configSetting altId="p401.gpio_mode.gpio_mode_peripheral" configurationId="p401.gpio_mode"/>
+      <configSetting altId="p401.gpio_mode.gpio_mode_out.low" configurationId="p401.gpio_mode"/>
       <configSetting altId="p402.output.low" configurationId="p402"/>
-      <configSetting altId="p402.gpio_mode.gpio_mode_peripheral" configurationId="p402.gpio_mode"/>
+      <configSetting altId="p402.gpio_mode.gpio_mode_out.low" configurationId="p402.gpio_mode"/>
       <configSetting altId="p407.output.low" configurationId="p407"/>
       <configSetting altId="p407.gpio_mode.gpio_mode_out.low" configurationId="p407.gpio_mode"/>
       <configSetting altId="p408.output.low" configurationId="p408"/>

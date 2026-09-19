@@ -22,11 +22,12 @@ static A_MFC_Context g_mfc = {
     .p_channels = g_mfc_channels
 }; // 六路轮询及写入调度状态
 
-static A_Control_Context g_control = {0}; // Control任务状态
+static A_Valve_Context g_valve = {0}; // 九阀状态，由Control任务独占
+static A_Control_Context g_control = {.p_valve = &g_valve}; // Control任务状态
 static A_System_Telemetry g_mfc_telemetry = {0}; // MFC任务的队列发送副本
 static A_System_Telemetry g_host_telemetry = {0}; // CAN任务的队列接收副本
 
-// 这里只登记固定地址和队列资源；任务间业务数据仍必须通过七个队列复制。
+// 这里只登记固定地址和队列资源；任务间业务数据仍必须通过八个队列复制。
 static A_System_Context g_system = {
     .p_host_can = &g_host_can,
     .p_mfc = &g_mfc,
@@ -112,7 +113,7 @@ static void A_System_MapChannel(const A_MFC_Channel *p_source, A_HostCan_Channel
 }
 
 /*
- * 说明：启动时集中创建七个静态队列；共享的仅为初始化配置和之后不变的句柄
+ * 说明：启动时集中创建八个静态队列；共享的仅为初始化配置和之后不变的句柄
  * 输入：p_context 板级上下文
  * 输出：uint32_t 非0表示全部队列可用
  */
@@ -196,9 +197,19 @@ uint32_t A_System_Initialize(A_System_Context *p_context)
                 &p_context->mfc_state_queue_memory);
         }
 
+        // Control任务 → CAN任务：九阀输出、目标、吸合状态和驱动故障。
+        if (p_context->valve_state_queue == NULL)
+        {
+            p_context->valve_state_queue = xQueueCreateStatic(
+                1U,
+                sizeof(A_HostCan_System),
+                p_context->valve_state_storage,
+                &p_context->valve_state_queue_memory);
+        }
+
         p_context->queues_ready = (p_context->command_queue && p_context->result_queue &&
             p_context->host_command_queue && p_context->host_result_queue && p_context->telemetry_queue &&
-            p_context->control_state_queue && p_context->mfc_state_queue) ? 1U : 0U;
+            p_context->control_state_queue && p_context->mfc_state_queue && p_context->valve_state_queue) ? 1U : 0U;
     }
     ready = p_context->queues_ready;
     taskEXIT_CRITICAL();
@@ -225,7 +236,25 @@ static void A_System_ReceiveTelemetry(A_System_Context *p_context)
     }
     (void) A_HostCan_PublishMfcLink(p_host, p_snapshot->link);
     A_HostCan_SetExecutors(p_host,
-        p_snapshot->ready ? A_HOSTCAN_EXECUTOR_MFC : 0U);
+        (p_host->executors & A_HOSTCAN_EXECUTOR_VALVE) |
+        (p_snapshot->ready ? A_HOSTCAN_EXECUTOR_MFC : 0U));
+}
+
+/*
+ * 说明：CAN任务从独立队列接收九阀状态，保留MFC链路和执行能力
+ * 输入：p_context 板级上下文
+ * 输出：无
+ */
+static void A_System_ReceiveValveState(A_System_Context *p_context)
+{
+    A_HostCan_System g_snapshot = {0}; // CAN任务局部接收副本
+    A_HostCan_Context *p_host = p_context->p_host_can; // CAN任务私有上下文
+    if (pdPASS == xQueueReceive(p_context->valve_state_queue, &g_snapshot, 0U))
+    {
+        (void) A_HostCan_PublishSystem(p_host, &g_snapshot);
+        // 已接入后保留执行器标志；故障由valves_valid拒绝新写，避免覆盖正在返回的实际故障码。
+        A_HostCan_SetExecutors(p_host, p_host->executors | A_HOSTCAN_EXECUTOR_VALVE);
+    }
 }
 
 /*
@@ -255,11 +284,13 @@ void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now)
     }
     // 第1步：先从MFC遥测队列更新CAN自己的参数缓存。
     A_System_ReceiveTelemetry(p_context);
+    A_System_ReceiveValveState(p_context);
 
     // 第2步：接收Control转来的实际执行结果，核对请求号后交给CAN协议处理。
     if (pdPASS == xQueueReceive(p_context->host_result_queue, &g_result, 0U))
     {
         A_System_ReceiveTelemetry(p_context); // MFC可能在上次出队后抢占并发布结果，先取结果对应的新快照
+        A_System_ReceiveValveState(p_context);
         (void) A_HostCan_CompleteCommand(p_host, g_result.sequence, (uint8_t) g_result.code, now);
     }
     // 第3步：推进CAN收发，解析上位机查询和写请求。
@@ -302,7 +333,7 @@ void A_System_ProcessMfc(A_System_Context *p_context, TickType_t now)
     A_MFC_Command g_command = {0}; // 命令队列副本
     A_MFC_CommandResult g_result = {0}; // 执行结果副本
     uint32_t authorized = 0U; // 原CAN请求在本轮是否仍有执行资格
-    uint32_t queues_ready = 0U; // 七个静态队列是否都已创建
+    uint32_t queues_ready = 0U; // 八个静态队列是否都已创建
     if (NULL == p_context || NULL == p_context->p_mfc || NULL == p_context->p_mfc_telemetry)
     {
         return;
@@ -387,6 +418,7 @@ void A_System_ProcessControl(A_System_Context *p_context, TickType_t now)
     g_queues.command = p_context->command_queue;//controltask to mfctask
     g_queues.result = p_context->result_queue;
     g_queues.host_state = p_context->control_state_queue;//各个队列数据进行统一管理
+    g_queues.valve_state = p_context->valve_state_queue;
     if (!A_Control_Initialize(p_context->p_control, &g_queues))
     {
         return;

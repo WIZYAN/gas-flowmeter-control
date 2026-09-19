@@ -260,7 +260,7 @@ can_rx_fifo_cfg_t g_can0_rx_fifo_cfg =
         .mailbox_id              =  0,
         .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
-        .frame_type              =  CAN_FRAME_TYPE_DATA
+        .frame_type              =  CAN_FRAME_TYPE_REMOTE
     },
 
     .rx_fifo_id2 =
@@ -268,7 +268,7 @@ can_rx_fifo_cfg_t g_can0_rx_fifo_cfg =
         .mailbox_id              =  0,
         .id_mode                 =  CAN_ID_MODE_EXTENDED,
         .mailbox_type            =  CAN_MAILBOX_RECEIVE,
-        .frame_type              =  CAN_FRAME_TYPE_DATA
+        .frame_type              =  CAN_FRAME_TYPE_REMOTE
     },
 };
 #endif
@@ -291,12 +291,9 @@ const can_extended_cfg_t g_can0_extended_cfg =
 
 can_instance_ctrl_t g_can0_ctrl;
 const can_cfg_t g_can0_cfg =
-{ .channel = 0,
-  .p_bit_timing = &g_can0_bit_timing_cfg,
-  .p_callback = H_HostCan_Callback,
-  .p_extend = &g_can0_extended_cfg,
-  .p_context = NULL,
-  .ipl = (12),
+{ .channel = 0, .p_bit_timing = &g_can0_bit_timing_cfg, .p_callback = H_HostCan_Callback, .p_extend =
+          &g_can0_extended_cfg,
+  .p_context = NULL, .ipl = (12),
 #if defined(VECTOR_NUMBER_CAN0_MAILBOX_TX)
     .tx_irq             = VECTOR_NUMBER_CAN0_MAILBOX_TX,
 #else

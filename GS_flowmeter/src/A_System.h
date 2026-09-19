@@ -33,6 +33,7 @@ typedef struct
     StaticQueue_t telemetry_queue_memory; // MFC到CAN六路覆盖队列控制块
     StaticQueue_t control_state_queue_memory; // CAN到Control状态覆盖队列控制块
     StaticQueue_t mfc_state_queue_memory; // CAN到MFC状态覆盖队列控制块
+    StaticQueue_t valve_state_queue_memory; // Control到CAN的九阀状态覆盖队列控制块
     uint8_t command_storage[A_SYSTEM_MFC_QUEUE_LENGTH * sizeof(A_MFC_Command)]; // 按值复制命令
     uint8_t result_storage[A_SYSTEM_MFC_QUEUE_LENGTH * sizeof(A_MFC_CommandResult)]; // 按值复制结果
     uint8_t host_command_storage[sizeof(A_HostCan_Command)]; // 单笔CAN业务命令
@@ -40,6 +41,7 @@ typedef struct
     uint8_t telemetry_storage[sizeof(A_System_Telemetry)]; // 六路最新快照的队列副本
     uint8_t control_state_storage[sizeof(A_Control_Host_State)]; // Control独立消费，不能与MFC竞争出队
     uint8_t mfc_state_storage[sizeof(A_Control_Host_State)]; // MFC独立消费的状态
+    uint8_t valve_state_storage[sizeof(A_HostCan_System)]; // 九阀状态的按值副本
     QueueHandle_t command_queue; // ControlTask生产，MfcTask消费
     QueueHandle_t result_queue; // MfcTask生产，ControlTask消费
     QueueHandle_t host_command_queue; // HostCanStack生产，ControlTask消费
@@ -47,6 +49,7 @@ typedef struct
     QueueHandle_t telemetry_queue; // MfcTask覆盖写，HostCanStack消费
     QueueHandle_t control_state_queue; // HostCanStack覆盖写，ControlTask消费
     QueueHandle_t mfc_state_queue; // HostCanStack覆盖写，MfcTask消费
+    QueueHandle_t valve_state_queue; // ControlTask覆盖写，HostCanStack消费
     uint32_t queues_ready; // 仅启动配置同步，创建完成后不再修改；业务状态一律走队列
 } A_System_Context;
 
@@ -59,7 +62,7 @@ A_System_Context *A_System_GetContext(void);
 /*
  * 说明：在短临界区创建全部静态队列，允许不同任务重复调用但不重建已有队列
  * 输入：p_context 板级上下文
- * 输出：uint32_t 非0表示七个队列全部创建成功
+ * 输出：uint32_t 非0表示八个队列全部创建成功
  */
 uint32_t A_System_Initialize(A_System_Context *p_context);
 /*
