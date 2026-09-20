@@ -1,8 +1,8 @@
 # 六路质量流量计控制系统工程记录
 
-更新时间：2026-09-19。当前阶段：已接入上位机CAN_USER、六路EX201自动采集、流量写入/读回确认及九路电磁阀执行，尚未完成实板验证。
+更新时间：2026-09-20。当前阶段：已接入上位机CAN_USER、六路EX201自动采集、流量写入/读回确认及九路电磁阀执行，尚未完成实板验证。
 
-**当前工程版本：V1.7.0.260919。** 自 V1.1.1.260911 起，工程统一使用下述版本命名规则，并在本文件维护每个版本的变更记录。
+**当前工程版本：V1.7.1.260920。** 自 V1.1.1.260911 起，工程统一使用下述版本命名规则，并在本文件维护每个版本的变更记录。
 
 当前代码运行索引：[主板运行流程与收发函数说明](<doc/Design Document/Design Statement/主板运行流程与收发函数说明.md>)。该文件集中记录启动、三个任务、六路轮询、CAN/RS485收发、流量写入、结果回复、异常恢复及实际使用的函数，作为后续阅读和维护流程的统一入口。
 
@@ -23,6 +23,7 @@
 
 | 版本 | 日期 | 变更内容 | 关联文件及验证状态 |
 | --- | --- | --- | --- |
+| V1.7.1.260920 | 2026-09-20 | 按功能整理源码目录：src仅保留四个入口文件，A_System/A_Control移至App，A/F/H_Valve移至Valve；同步Debug/Release编译目录、头文件路径、VS Code、测试脚本和文档索引。 | 源码内容保持不变；构建及回归验证结果见本版末节。 |
 | V1.7.0.260919 | 2026-09-19 | 新增A/F/H_Valve九阀执行：启动关闭、三组共享12V吸合200ms后约5V保持、V7/V9同步及V8互斥；Control与CAN新增阀状态覆盖队列；V7统一联动入口，V9只读，参数表升至2，新增0x13阀GPIO错误；修正P401/P402为GPIO。 | 阀门GPIO/计时、CAN执行及原六路轮询/写入回归通过；ARM构建及资源占用见本版末节。实装MOS、线圈和机械时序未实板验证。 |
 | V1.6.1.260915 | 2026-09-15 | 按AGENTS.md降低嵌套：独立存放任务/六路通道/EX201事务和CAN驱动状态；删除CAN空包装结构及队列创建转发函数；展开压缩分支，新增CAN请求状态枚举和步骤注释，更新阅读与调试索引。 | 24个自定义结构体按值嵌套不超过两层，生产成员访问不超过两次；原轮询、写入、队列、六种任务顺序及CAN协议测试通过，增加缺少依赖存储绑定时的拒绝测试；ARM构建通过，text=30108、data=2468、bss=8324。无实板验证。 |
 | V1.6.0.260915 | 2026-09-15 | 所有任务间业务交接统一为七个静态FreeRTOS队列：CAN→Control→MFC命令及反向结果、六路完整遥测覆盖队列、两个独立CAN请求状态队列；任务独占各自上下文，保持CAN_USER线上格式和参数表版本1。 | 六路轮询、写链路、CAN协议及新增队列所有权/覆盖/拥塞/状态过期测试通过；RA4M1 Debug构建通过，text=30564、data=320、bss=10432字节。CAN故障通过队列传播，状态有效期20ms，实板调度与栈水位待验证。 |
@@ -39,6 +40,22 @@
 此前的 V0.3、V0.4 为 Word 草稿历史修订号，不追溯改写为正式工程版本；当前工程版本以上述记录为准。
 
 ## 自编代码分层命名规则
+
+### 源码目录分类
+
+文件夹按功能模块分类，文件名的`A_`、`F_`、`H_`前缀区分应用、功能和硬件层级。每个模块的`.c`与配套`.h`放在同一目录。
+
+| 目录 | 文件与职责 |
+| --- | --- |
+| `GS_flowmeter/src` | 仅保留`hal_entry.c`、`HostCanStack_entry.c`、`MfcTask_entry.c`、`ControlTask_entry.c`，负责启动和任务入口；`R_BSP_WarmStart`继续放在`hal_entry.c`。 |
+| `GS_flowmeter/App` | `A_System.c/.h`、`A_Control.c/.h`：系统初始化、任务间队列交接与业务协调。 |
+| `GS_flowmeter/Valve` | `A_Valve.c/.h`、`F_Valve.c/.h`、`H_Valve.c/.h`：阀门联锁、吸合保持时序与GPIO驱动。 |
+| `GS_flowmeter/Can` | 上位机CAN通信与CAN_USER协议。 |
+| `GS_flowmeter/Mfc` | 六路流量计管理与EX201通信。 |
+| `GS_flowmeter/Bsp` | 当前为空，暂不新增内容。 |
+| `GS_flowmeter/ra`、`ra_cfg`、`ra_gen`、`script` | 分别为厂商库、库配置、自动生成代码和链接脚本，保留现有组织。 |
+
+### 文件与函数命名
 
 自 2026-09-14 起，项目自行编写的 C 模块按职责使用固定前缀，源文件、头文件及其函数必须保持同一层级前缀：
 
@@ -71,7 +88,7 @@
 
 本项目使用 R7FA4M1AB3CFM 管理六台 EX-201S 系列质量流量控制器和九个外部电磁阀。流量闭环由流量控制器内部完成，MCU 负责流量设定、状态采集、气路过程协调及阀门联锁，上位机负责操作和监测。
 
-本文将信息分为“原理图确认”“用户装配说明”“软件建议”和“待确认”。原理图不能替代实板装配和电平验证。当前软件代码版本为 V1.5.0.260915，Word、流程与架构图的已验证设计基线为 V1.2.0.260911；当前实现以本README及最新Markdown说明为准，历史文档用于追溯。
+本文将信息分为“原理图确认”“用户装配说明”“软件建议”和“待确认”。原理图不能替代实板装配和电平验证。当前软件代码版本为 V1.7.1.260920，Word、流程与架构图的已验证设计基线为 V1.2.0.260911；当前实现以本README及最新Markdown说明为准，历史文档用于追溯。
 
 **2026-09-11 最新通信方案：MFC RS485 使用 EX-201S 仪器自带专用 ASCII 协议，MFC CAN 使用用户自定义 CAN_USER；同一固件同时保留两个后端，由 MfcTask 运行时探测、确认并锁定有效链路。此前 Modbus RTU 和预编译二选一方案均已被取代。** 两个 RJ45 和一个 DB9 仍共用一条下行总线，外接三选一；J17/J18 继续由人工统一选择物理总线。
 
@@ -498,7 +515,7 @@ V1.3.0时六通道采集与执行任务尚未接入；V1.4.0完成六路EX201采
 | 模块 | 职责 |
 | --- | --- |
 | [A_MFC.c](GS_flowmeter/Mfc/A_MFC.c)及配套头文件 | 唯一EX201事务、六个独立通道、公平轮询、各路初始化和掉线恢复 |
-| [A_System.c](GS_flowmeter/src/A_System.c)及配套头文件 | 静态持有任务上下文，按每路小数位转换工程值，向CAN发布变化快照 |
+| [A_System.c](GS_flowmeter/App/A_System.c)及配套头文件 | 静态持有任务上下文，按每路小数位转换工程值，向CAN发布变化快照 |
 | [MfcTask_entry.c](GS_flowmeter/src/MfcTask_entry.c) | 配置六路地址，每1ms推进轮询及发布；硬件失败自动退避重试 |
 | [六路轮询说明](<doc/Design Document/Design Statement/六路MFC轮询说明.md>) | 默认周期、指令、地址、状态和无硬件测试方法 |
 | [六路集成测试](tests/mfc/run.ps1) | 用六台模拟设备执行实际A/F协议与轮询代码，再核验CAN_USER线上回复 |
@@ -530,9 +547,9 @@ V1.3.0时六通道采集与执行任务尚未接入；V1.4.0完成六路EX201采
 
 | 模块 | 本次职责 |
 | --- | --- |
-| [A_Control.c](GS_flowmeter/src/A_Control.c)及配套头文件 | 领取CAN写请求、命令入队、结果关联及CAN业务码映射；只启用MFC执行能力 |
+| [A_Control.c](GS_flowmeter/App/A_Control.c)及配套头文件 | 领取CAN写请求、命令入队、结果关联及CAN业务码映射；只启用MFC执行能力 |
 | [A_MFC.c](GS_flowmeter/Mfc/A_MFC.c)及配套头文件 | 与轮询共用唯一事务；检查在线、初始化、量程及分辨率，执行RFSM→WSFD→RSFD |
-| [A_System.c](GS_flowmeter/src/A_System.c)及配套头文件 | 持有静态队列内存，连接两个任务；检查原CAN请求有效性，发布确认目标后再提交结果 |
+| [A_System.c](GS_flowmeter/App/A_System.c)及配套头文件 | 持有静态队列内存，连接两个任务；检查原CAN请求有效性，发布确认目标后再提交结果 |
 | [ControlTask_entry.c](GS_flowmeter/src/ControlTask_entry.c) | 每1ms推进控制交接，串口仍由MfcTask独占 |
 | [流量写入执行说明](<doc/Design Document/Design Statement/流量写入执行说明.md>) | 队列、执行状态、目标有效性、错误和期限定义 |
 | [A_WriteTest.c](tests/mfc/A_WriteTest.c)及配套头文件 | 六路CAN写入到EX201再到CAN回复的集成测试 |
@@ -573,7 +590,7 @@ RA4M1 Debug构建通过；text=29860、data=320、bss=8904字节。静态单函�
 
 CAN请求有效状态分别送给两个消费者，包含请求号、请求起点、更新时间和valid。A_Control_RequestValid同时校验消息匹配、20ms状态有效期和3000ms原请求期限。CAN故障/撤销需经CAN任务发布后才由其他任务获知，存在调度延迟；不再直接读取CAN硬件状态来保证“CAN任务尚未处理bus-off时立即禁止WSFD”。CAN不再更新状态时，MFC在状态超期后的下一次运行中退出。已经发出的WSFD不能撤回，也不自动重放。20ms配置及中断/任务调度时长需要实板核对。
 
-相关源码：[A_System.c](GS_flowmeter/src/A_System.c)、[A_System.h](GS_flowmeter/src/A_System.h)、[A_Control.c](GS_flowmeter/src/A_Control.c)、[A_Control.h](GS_flowmeter/src/A_Control.h)、[CAN任务入口](GS_flowmeter/src/HostCanStack_entry.c)。A_HostCan的PublishChannel、PublishSystem、PublishMfcLink、SetExecutors、TakeCommand、CommandActive、CompleteCommand接口均限定CAN任务自身调用，其他任务必须先入队。外部九阀执行和下行CAN后端仍未接入。
+相关源码：[A_System.c](GS_flowmeter/App/A_System.c)、[A_System.h](GS_flowmeter/App/A_System.h)、[A_Control.c](GS_flowmeter/App/A_Control.c)、[A_Control.h](GS_flowmeter/App/A_Control.h)、[CAN任务入口](GS_flowmeter/src/HostCanStack_entry.c)。A_HostCan的PublishChannel、PublishSystem、PublishMfcLink、SetExecutors、TakeCommand、CommandActive、CompleteCommand接口均限定CAN任务自身调用，其他任务必须先入队。外部九阀执行和下行CAN后端仍未接入。
 
 运行文档R2：[主板运行流程与收发函数说明](<doc/Design Document/Design Statement/主板运行流程与收发函数说明.md>)；同时更新六路轮询说明、流量写入执行说明和CAN_USER参数表中的任务交接内容。V1.2.0流程图保留为历史方案并增加当前实现入口，不将其规划状态视为已实现。
 
@@ -606,7 +623,7 @@ RA4M1 Debug构建通过，无新增警告；text=30108、data=2468、bss=8324字
 
 ## V1.7.0 九路电磁阀执行
 
-新增`src/A_Valve.c/h`、`src/F_Valve.c/h`、`src/H_Valve.c/h`，按应用联锁、功能计时、硬件GPIO三层组织。状态只由ControlTask拥有，各模块采用平铺结构和明确步骤注释。现有FSP启动引脚配置和阀初始化均输出关闭，P401/P402已修正为普通GPIO。
+新增`Valve/A_Valve.c/h`、`Valve/F_Valve.c/h`、`Valve/H_Valve.c/h`，按应用联锁、功能计时、硬件GPIO三层组织。状态只由ControlTask拥有，各模块采用平铺结构和明确步骤注释。现有FSP启动引脚配置和阀初始化均输出关闭，P401/P402已修正为普通GPIO。
 
 九阀分三组共用12V控制，每个新开阀吸合200ms后约5V保持；用户已允许同组保持阀短时重新承受12V。重复开已开阀不刷新计时。V7/V9同端口同步更新，与V8先关后开。机械释放死区未确认，当前只保证电气输出操作顺序。
 
@@ -621,3 +638,11 @@ CAN_USER帧格式保持兼容，参数表版本升至2：0x0306统一控制V7/V9
 运行详情：[九路电磁阀执行说明](<doc/Design Document/Design Statement/九路电磁阀执行说明.md>)、[主板运行流程与收发函数说明](<doc/Design Document/Design Statement/主板运行流程与收发函数说明.md>)、[CAN参数表](<doc/Design Document/Design Statement/CAN_USER通讯与参数表.md>)。
 
 建议提交名称：`feat(valve): V1.7.0.260919 实现九阀吸合保持与CAN联动控制`。由用户自行提交推送。
+
+## V1.7.1 源码目录整理
+
+`src`仅保留四个入口文件；`A_System.c/.h`、`A_Control.c/.h`移至`App`；`A_Valve.c/.h`、`F_Valve.c/.h`、`H_Valve.c/.h`移至`Valve`。十个移动文件与整理前的Git内容逐一核对一致，业务逻辑、任务和硬件配置不变。Debug/Release均增加Valve源码目录以及App、Valve头文件搜索路径，VS Code配置、测试脚本和Markdown索引同步更新。V1.7.0记录中的src路径为当时布局，现以本节为准。
+
+验证：`tests/valve/run.ps1`、`tests/mfc/run.ps1`（轮询和写入两组）、`tests/can/run.ps1`全部通过。e² studio命令行生成Debug/Release构建文件后，使用本机ARM GCC 10.3.1与GNU Make完成两种配置的编译和链接；临时工作区未注册工具链，验证时显式提供工具链PATH。Release临时输出目录补入同一RA4M1目标的Debug生成文件`memory_regions.ld`，未修改链接脚本或内存布局。两种配置均为text=31784、data=2644、bss=8332字节，与整理前Debug占用一致；各保留五条原有FreeRTOS警告，无新增警告。没有进行实板验证。
+
+测试目录仍按现有`.gitignore`保留为本地验证文件。建议提交名称：`refactor: V1.7.1.260920 按功能整理App和Valve目录`。由用户自行提交推送。

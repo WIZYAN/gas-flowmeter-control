@@ -12,6 +12,8 @@
       "intelliSenseMode": "windows-gcc-arm",
       "includePath": [
         "${workspaceFolder}/src",
+        "${workspaceFolder}/App",
+        "${workspaceFolder}/Valve",
         "${workspaceFolder}/Mfc",
         "${workspaceFolder}/Can",
         "${workspaceFolder}/ra/fsp/inc",
