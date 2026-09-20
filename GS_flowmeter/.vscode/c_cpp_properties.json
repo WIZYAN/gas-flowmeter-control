@@ -1,0 +1,43 @@
+{
+  "configurations": [
+    {
+      "name": "Renesas RA4M1 (FSP 3.8.0)",
+      "compilerPath": "C:/Renesas/RA/e2studio_v2022-04_fsp_v3.8.0/toolchains/gcc_arm/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gcc.exe",
+      "compilerArgs": [
+        "-mcpu=cortex-m4",
+        "-mthumb",
+        "-mfloat-abi=hard",
+        "-mfpu=fpv4-sp-d16"
+      ],
+      "intelliSenseMode": "windows-gcc-arm",
+      "includePath": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/Mfc",
+        "${workspaceFolder}/Can",
+        "${workspaceFolder}/ra/fsp/inc",
+        "${workspaceFolder}/ra/fsp/inc/api",
+        "${workspaceFolder}/ra/fsp/inc/instances",
+        "${workspaceFolder}/ra/fsp/src/rm_freertos_port",
+        "${workspaceFolder}/ra/aws/amazon-freertos/freertos_kernel/include",
+        "${workspaceFolder}/ra/arm/CMSIS_5/CMSIS/Core/Include",
+        "${workspaceFolder}/ra_gen",
+        "${workspaceFolder}/ra_cfg/fsp_cfg/bsp",
+        "${workspaceFolder}/ra_cfg/fsp_cfg",
+        "${workspaceFolder}/ra_cfg/aws"
+      ],
+      "defines": [
+        "_RA_CORE=CM4",
+        "_RENESAS_RA_"
+      ],
+      "cStandard": "c99",
+      "cppStandard": "c++17",
+      "browse": {
+        "path": [
+          "${workspaceFolder}"
+        ],
+        "limitSymbolsToIncludedHeaders": false
+      }
+    }
+  ],
+  "version": 4
+}
