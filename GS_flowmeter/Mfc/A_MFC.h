@@ -5,6 +5,7 @@
 #ifndef MFC_A_MFC_H_
 #define MFC_A_MFC_H_
 #include "A_EX201.h"
+#include "A_MfcCan.h"
 
 #define A_MFC_CHANNEL_COUNT (6U) // 固定轮询六路，包括第六路预留口
 #define A_MFC_ACTUAL_PERIOD_MS (500U) // 每路瞬时流量目标查询间隔
@@ -12,6 +13,10 @@
 #define A_MFC_RETRY_MS (5000U) // 离线设备及硬件故障恢复间隔
 #define A_MFC_ERROR_GUARD_MS (50U) // 错误后总线静默时间，实机需核对迟到帧
 #define A_MFC_FAILURE_LIMIT (3U) // 已就绪通道连续失败次数上限
+#define A_MFC_LINK_LOSS_MS (10000U) // 整条链路持续无有效响应才解除锁定
+#define A_MFC_LINK_PROBING (0U) // 正在探测，禁止流量写入
+#define A_MFC_LINK_RS485 (1U) // 已锁定EX201
+#define A_MFC_LINK_CAN (2U) // 已锁定本项目MFC CAN_USER
 #define A_MFC_VALID_ACTUAL (1UL << 0U) // 瞬时流量尾数有效
 #define A_MFC_VALID_CONFIRMED (1UL << 1U) // 仪器数字设定尾数有效
 #define A_MFC_VALID_TARGET (1UL << 2U) // MCU最近一次写入且读回确认的目标有效
@@ -32,19 +37,19 @@ typedef enum
     A_MFC_COMMAND_TIMEOUT,      // 下行事务超时，写入可能已发生
     A_MFC_COMMAND_EXPIRED,      // 请求过期或被上位机通信恢复撤销
     A_MFC_COMMAND_PROTOCOL,     // 应答协议错误
-    A_MFC_COMMAND_DRIVER,       // 串口或恢复失败
-    A_MFC_COMMAND_VERIFY        // RSFD读回与写入尾数不一致
+    A_MFC_COMMAND_DRIVER,       // UART、SPI、CAN或恢复失败
+    A_MFC_COMMAND_VERIFY        // RSFD或CAN数字设定读回与写入尾数不一致
 } A_MFC_CommandCode;
 
 typedef enum
 {
     A_MFC_WRITE_IDLE = 0, // 没有写请求
     A_MFC_WRITE_PENDING,  // 等待当前轮询结束
-    A_MFC_WRITE_SOURCE,   // 等待RFSM确认数字来源
-    A_MFC_WRITE_START,    // 准备发送一次WSFD
-    A_MFC_WRITE_ACK,      // 等待WSFD的OK或NG
-    A_MFC_WRITE_READBACK, // 准备发送RSFD
-    A_MFC_WRITE_VERIFY,   // 等待RSFD读回
+    A_MFC_WRITE_SOURCE,   // 等待RFSM或CAN 0x0104确认数字来源
+    A_MFC_WRITE_START,    // 准备发送一次WSFD或CAN 0x0200写入
+    A_MFC_WRITE_ACK,      // 等待EX201 OK/NG或CAN 0x06执行结果
+    A_MFC_WRITE_READBACK, // 准备发送RSFD或CAN 0x0001读取
+    A_MFC_WRITE_VERIFY,   // 等待数字设定值读回
     A_MFC_WRITE_DONE      // 结果待入队，期间可继续轮询
 } A_MFC_WriteState;
 
@@ -62,7 +67,7 @@ typedef struct
 {
     uint32_t sequence; // 关联原请求，迟到结果不能完成新请求
     A_MFC_CommandCode code; // 业务执行结果，由Control层映射到CAN_USER
-    A_EX201_Result transport_result; // 具体EX201结果，便于调试
+    A_EX201_Result transport_result; // 两后端共用的事务结果码，保留已有枚举名称
 } A_MFC_CommandResult;
 
 typedef enum
@@ -84,7 +89,9 @@ typedef enum
     A_MFC_READ_SETTING,   // RVSS
     A_MFC_READ_VALVE,     // RCVS
     A_MFC_READ_ALARM,     // RALM
-    A_MFC_READ_COUNT      // 初始化操作数量
+    A_MFC_READ_COUNT,     // 九个常规初始化操作，不包含CAN身份检查
+    A_MFC_READ_IDENTITY,  // CAN专用：设备配置标识
+    A_MFC_READ_VERSION    // CAN专用：参数表版本
 } A_MFC_ReadOperation;
 
 typedef struct
@@ -112,18 +119,20 @@ typedef struct
     TickType_t status_attempt_tick; // 最近一次慢速参数查询发起时间
     TickType_t retry_tick;          // 进入离线退避的时间
     uint16_t address;               // 本通道EX201通信地址
+    uint32_t can_profile_checked;    // 0未检查，1标识通过，2标识与版本均通过
 } A_MFC_Channel;
 
 typedef struct
 {
     A_EX201_Context *p_transaction;              // 六路共用的独立EX201事务，初始化前绑定
+    A_MfcCan_Context *p_can;                     // 同任务CAN事务，生产配置必须绑定
     A_MFC_Channel *p_channels;                   // 六个独立通道的固定数组，初始化前绑定且生命周期覆盖任务
     uint32_t next_channel;                        // 下一轮优先检查的通道
     uint32_t active_channel;                      // 当前事务通道索引
     A_MFC_ReadOperation active_operation;         // 当前只读操作
     uint32_t active;                              // 有事务等待取结果
     uint32_t configured;                          // 六路地址已经校验和初始化
-    uint32_t transport_ready;                     // 串口客户端可用
+    uint32_t transport_ready;                     // 当前锁定后端可用
     uint32_t transport_attempted;                 // 已尝试初始化或恢复
     uint32_t guard_active;                        // 错误后静默等待
     uint32_t valid_responses;                     // 链路确认计数，最多累计到2
@@ -133,7 +142,16 @@ typedef struct
     A_MFC_CommandResult write_result;             // 结果队列满时继续保留
     A_MFC_WriteState write_state;                 // 写入及读回状态
     uint16_t write_mantissa;                      // 经本通道量程和分辨率检查的尾数
-    uint32_t write_attempted;                     // 已尝试发送WSFD，失败时结果可能不确定
+    uint32_t write_attempted;                     // 已向当前后端提交写入，失败时结果可能不确定
+    A_EX201_Result deferred_error;               // START临界区只记录失败，下一轮再恢复硬件
+    uint32_t selected_link;                      // 0探测，1RS485，2CAN，整条MFC总线统一选择
+    uint32_t probe_link;                         // 本次只读探测使用的后端
+    uint32_t probe_channel;                      // 探测通道索引，轮流覆盖六台
+    uint32_t probe_step;                         // 0准备，1首个应答，2发第二次，3第二应答
+    uint32_t probe_wait;                         // 探测失败后的静默等待
+    uint32_t probe_failed;                       // 至少一次失败，用于上报尚无可用链路
+    TickType_t probe_tick;                       // 探测静默起点
+    TickType_t last_valid_tick;                  // 最近一次有效应答时间
 } A_MFC_Context;
 
 /*
@@ -161,9 +179,9 @@ void A_MFC_Process(A_MFC_Context *p_context, TickType_t now);
  */
 const A_MFC_Channel *A_MFC_GetChannel(const A_MFC_Context *p_context, uint32_t index);
 /*
- * 说明：取得当前EX201链路状态；不代表CAN/RS485双后端探测已实现
+ * 说明：取得整条MFC总线的当前链路状态
  * 输入：p_context 上下文
- * 输出：uint32_t 0待确认，1有效RS485，3离线或硬件故障
+ * 输出：uint32_t 0待确认，1有效RS485，2有效CAN，3探测失败或硬件故障
  */
 uint32_t A_MFC_GetLink(const A_MFC_Context *p_context);
 /*

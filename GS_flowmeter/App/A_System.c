@@ -16,9 +16,12 @@ static A_HostCan_Context g_host_can = {.p_transport = &g_can_transport}; // CAN�
 // MFC任务：六路通道、唯一事务、组帧缓冲各自存放，地址在启动前固定。
 static F_EX201_Context g_ex201_function = {0}; // EX201组帧与RS485硬件状态
 static A_EX201_Context g_ex201_transaction = {.p_function = &g_ex201_function}; // 单个EX201事务
+static F_MfcCan_Context g_mfc_can_transport = {0}; // SPI1/MCP2515驱动状态
+static A_MfcCan_Context g_mfc_can = {.p_transport = &g_mfc_can_transport}; // 下行CAN_USER事务
 static A_MFC_Channel g_mfc_channels[A_MFC_CHANNEL_COUNT] = {0}; // 六路参数和采集状态
 static A_MFC_Context g_mfc = {
     .p_transaction = &g_ex201_transaction,
+    .p_can = &g_mfc_can,
     .p_channels = g_mfc_channels
 }; // 六路轮询及写入调度状态
 

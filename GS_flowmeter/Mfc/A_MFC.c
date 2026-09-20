@@ -3,6 +3,7 @@
  * Author: CI
  */
 #include "A_MFC.h"
+#include "A_MfcLink.h"
 #include <math.h>
 #include <float.h>
 
@@ -42,6 +43,7 @@ static void A_MFC_MarkOffline(A_MFC_Channel *p_channel, TickType_t now, A_EX201_
     p_channel->initialize_step = 0U;
     p_channel->status_step = 0U;
     p_channel->prefer_status = 0U;
+    p_channel->can_profile_checked = 0U;
     p_channel->retry_tick = now;
     p_channel->last_error = (uint32_t) result;
     p_channel->revision++;
@@ -65,6 +67,7 @@ uint32_t A_MFC_Initialize(A_MFC_Context *p_context, const A_MFC_Config *p_config
     {
         return 0U; // 事务的组帧状态未绑定，不能进入后续硬件初始化。
     }
+    if (p_context->p_can != NULL && p_context->p_can->p_transport == NULL) { return 0U; }
     for (index = 0U; index < A_MFC_CHANNEL_COUNT; index++)
     {
         if ((p_config->addresses[index] < EX201_ADDRESS_MIN) ||
@@ -96,9 +99,21 @@ uint32_t A_MFC_Initialize(A_MFC_Context *p_context, const A_MFC_Config *p_config
  * 输入：p_context 唯一事务，address 设备地址，operation 只读操作，now 当前节拍
  * 输出：A_EX201_Result 启动结果
  */
-static A_EX201_Result A_MFC_StartRead(A_EX201_Context *p_context, uint16_t address,
+static A_EX201_Result A_MFC_StartRead(A_MFC_Context *p_mfc, uint16_t address,
                                      A_MFC_ReadOperation operation, TickType_t now)
 {
+    A_EX201_Context *p_context = p_mfc->p_transaction; // RS485事务
+    static const uint16_t s_parameters[] = {
+        A_MFCCAN_FULL_SCALE, A_MFCCAN_DECIMAL, A_MFCCAN_UNIT, A_MFCCAN_ACTUAL,
+        A_MFCCAN_CONFIRMED, A_MFCCAN_SOURCE, A_MFCCAN_SETTING, A_MFCCAN_VALVE,
+        A_MFCCAN_ALARM, 0U, A_MFCCAN_DEVICE_ID, A_MFCCAN_VERSION
+    }; // 公共操作对应下行CAN参数，READ_COUNT位置不可使用
+    if (p_mfc->selected_link == A_MFC_LINK_CAN)
+    {
+        if (operation > A_MFC_READ_VERSION || operation == A_MFC_READ_COUNT) { return A_EX201_RESULT_INVALID_ARGUMENT; }
+        return A_MfcCan_Start(p_mfc->p_can, (uint16_t) (p_mfc->active_channel + 1U),
+            s_parameters[operation], 0U, 0U, now);
+    }
     switch (operation)
     {
         case A_MFC_READ_SCALE:
@@ -125,6 +140,66 @@ static A_EX201_Result A_MFC_StartRead(A_EX201_Context *p_context, uint16_t addre
 }
 
 /*
+ * 说明：恢复当前锁定的后端，不改变另一后端的使能电平
+ * 输入：p_context 调度状态
+ * 输出：A_EX201_Result 结果
+ */
+static A_EX201_Result A_MFC_RecoverTransport(A_MFC_Context *p_context)
+{
+    if (p_context->selected_link == A_MFC_LINK_CAN)
+    {
+        if (A_EX201_RESULT_OK != A_MfcCan_Stop(p_context->p_can)) { return A_EX201_RESULT_RECOVERY_ERROR; }
+        return A_MfcCan_Initialize(p_context->p_can);
+    }
+    return A_EX201_Recover(p_context->p_transaction);
+}
+
+/*
+ * 说明：推进当前后端，CAN的SPI仅在开中断的任务上下文运行
+ * 输入：p_context 调度状态，now 当前节拍
+ * 输出：无
+ */
+static void A_MFC_ProcessTransport(A_MFC_Context *p_context, TickType_t now)
+{
+    if (p_context->selected_link == A_MFC_LINK_CAN) { A_MfcCan_Process(p_context->p_can, now); }
+    else { A_EX201_Process(p_context->p_transaction, now); }
+}
+
+/*
+ * 说明：将所选后端的元数据写入同一通道缓存
+ * 输入：p_context 状态，p_info 通道参数
+ * 输出：A_EX201_Result 结果
+ */
+static A_EX201_Result A_MFC_GetInfo(A_MFC_Context *p_context, A_EX201_DeviceInfo *p_info)
+{
+    return p_context->selected_link == A_MFC_LINK_CAN ? A_MfcCan_GetInfo(p_context->p_can, p_info) :
+           A_EX201_GetDeviceInfoResult(p_context->p_transaction, p_info);
+}
+
+/*
+ * 说明：统一取得流量尾数，CAN换算只使用当前通道小数位
+ * 输入：p_context 状态，p_mantissa 输出尾数
+ * 输出：A_EX201_Result 结果
+ */
+static A_EX201_Result A_MFC_GetFlow(A_MFC_Context *p_context, int32_t *p_mantissa)
+{
+    A_MFC_Channel *p_channel = &p_context->p_channels[p_context->active_channel]; // 当前通道
+    return p_context->selected_link == A_MFC_LINK_CAN ?
+           A_MfcCan_GetFlow(p_context->p_can, &p_channel->device_info, p_mantissa) :
+           A_EX201_GetFlowResult(p_context->p_transaction, p_mantissa);
+}
+
+/*
+ * 说明：选择当前后端的错误静默时间
+ * 输入：p_context 状态
+ * 输出：TickType_t 静默毫秒数
+ */
+static TickType_t A_MFC_GuardTime(const A_MFC_Context *p_context)
+{
+    return p_context->selected_link == A_MFC_LINK_CAN ? A_MFCCAN_QUIET_MS : A_MFC_ERROR_GUARD_MS;
+}
+
+/*
  * 说明：失败时使本次查询字段立即失效，禁止把旧数据当作本次结果
  * 输入：p_channel 通道，operation 失败的操作
  * 输出：无
@@ -137,7 +212,7 @@ static void A_MFC_InvalidateField(A_MFC_Channel *p_channel, A_MFC_ReadOperation 
         A_EX201_DEVICE_INFO_VALVE_SETTING_VALID, A_EX201_DEVICE_INFO_VALVE_STATE_VALID,
         A_EX201_DEVICE_INFO_ALARM_VALID
     }; // 初始化操作与设备信息有效位的对应关系
-    p_channel->device_info.valid_flags &= ~s_info_flags[operation];
+    if (operation < A_MFC_READ_COUNT) { p_channel->device_info.valid_flags &= ~s_info_flags[operation]; }
     if (A_MFC_READ_ACTUAL == operation)
     {
         p_channel->flow_valid &= ~A_MFC_VALID_ACTUAL;
@@ -179,6 +254,12 @@ static void A_MFC_Finish(A_MFC_Context *p_context, A_EX201_Result result, TickTy
     p_channel->revision++;
     if (A_EX201_RESULT_OK == result)
     {
+        p_context->last_valid_tick = now;
+        if (p_context->active_operation == A_MFC_READ_IDENTITY || p_context->active_operation == A_MFC_READ_VERSION)
+        {
+            p_channel->can_profile_checked++;
+            return; // 身份检查通过还不代表九个业务参数初始化完成。
+        }
         p_channel->online = 1U;
         p_channel->consecutive_failures = 0U;
         if (p_context->valid_responses < 2U)
@@ -205,7 +286,7 @@ static void A_MFC_Finish(A_MFC_Context *p_context, A_EX201_Result result, TickTy
     }
     p_context->guard_active = 1U;
     p_context->guard_tick = now;
-    if (A_EX201_RESULT_OK != A_EX201_Recover(p_context->p_transaction))
+    if (A_EX201_RESULT_OK != A_MFC_RecoverTransport(p_context))
     {
         A_MFC_TransportFailed(p_context, now, A_EX201_RESULT_RECOVERY_ERROR);
     }
@@ -264,7 +345,7 @@ static uint32_t A_MFC_SelectRead(A_MFC_Channel *p_channel, TickType_t now,
 }
 
 /*
- * 说明：推进共享EX201事务，每次最多发起一个请求，没有阻塞等待
+ * 说明：推进所选后端，每次最多发起一个请求；业务应答不忙等，SPI短事务有界等待
  * 输入：p_context 上下文，now 当前节拍
  * 输出：无
  */
@@ -284,6 +365,7 @@ void A_MFC_Process(A_MFC_Context *p_context, TickType_t now)
     {
         return;
     }
+    if (p_context->p_can != NULL && !A_MfcLink_Process(p_context, now)) { return; }
     // 第1步：串口尚未就绪时，按退避时间初始化或恢复共享事务。
     if (0U == p_context->transport_ready)
     {
@@ -306,16 +388,17 @@ void A_MFC_Process(A_MFC_Context *p_context, TickType_t now)
             return;
         }
         p_context->transport_ready = 1U;
+        p_context->selected_link = A_MFC_LINK_RS485; // 未绑定CAN的独立RS485客户端仍可使用。
     }
     // 第2步：上一笔查询还没结束，先接收和解析它，本轮不能再发送另一笔。
     if (0U != p_context->active)
     {
-        A_EX201_Process(p_context->p_transaction, now);//当有事务时，rs485接收，检查
+        A_MFC_ProcessTransport(p_context, now); // 按锁定链路接收和检查
         p_channel = &p_context->p_channels[p_context->active_channel];
         if ((A_MFC_READ_ACTUAL == p_context->active_operation) ||
             (A_MFC_READ_CONFIRMED == p_context->active_operation))
         {
-            result = A_EX201_GetFlowResult(p_context->p_transaction, &mantissa);
+            result = A_MFC_GetFlow(p_context, &mantissa);
             if (A_EX201_RESULT_OK == result)
             {
                 if (A_MFC_READ_ACTUAL == p_context->active_operation)
@@ -333,7 +416,7 @@ void A_MFC_Process(A_MFC_Context *p_context, TickType_t now)
         }
         else
         {
-            result = A_EX201_GetDeviceInfoResult(p_context->p_transaction, &p_channel->device_info);
+            result = A_MFC_GetInfo(p_context, &p_channel->device_info);
         }
         if (A_EX201_RESULT_BUSY == result)
         {
@@ -342,10 +425,12 @@ void A_MFC_Process(A_MFC_Context *p_context, TickType_t now)
         A_MFC_Finish(p_context, result, now);
         return;
     }
+    // 没有事务时也服务MCP2515，清掉未经请求的帧，避免两个硬件缓冲长期积压。
+    if (p_context->selected_link == A_MFC_LINK_CAN) { A_MfcCan_Process(p_context->p_can, now); }
     // 第3步：通信出错后先等待总线静默，避免立即把迟到响应当作新响应。
     if (0U != p_context->guard_active)
     {
-        if ((TickType_t) (now - p_context->guard_tick) < A_MFC_ERROR_GUARD_MS)
+        if ((TickType_t) (now - p_context->guard_tick) < A_MFC_GuardTime(p_context))
         {
             return;
         }
@@ -362,7 +447,11 @@ void A_MFC_Process(A_MFC_Context *p_context, TickType_t now)
         }
         p_context->next_channel = (index + 1U) % A_MFC_CHANNEL_COUNT;
         p_context->active_channel = index;
-        result = A_MFC_StartRead(p_context->p_transaction, p_channel->address, p_context->active_operation, now);//发起ex201的数据查询
+        if (p_context->selected_link == A_MFC_LINK_CAN && p_channel->can_profile_checked < 2U)
+        {
+            p_context->active_operation = p_channel->can_profile_checked == 0U ? A_MFC_READ_IDENTITY : A_MFC_READ_VERSION;
+        }
+        result = A_MFC_StartRead(p_context, p_channel->address, p_context->active_operation, now);
         if (A_EX201_RESULT_OK == result)
         {
             p_context->active = 1U;
@@ -390,9 +479,9 @@ const A_MFC_Channel *A_MFC_GetChannel(const A_MFC_Context *p_context, uint32_t i
 }
 
 /*
- * 说明：根据有效EX201应答及六路状态报告链路，尚不含下行CAN探测
+ * 说明：报告整条MFC总线的锁定链路及探测故障状态
  * 输入：p_context 上下文
- * 输出：uint32_t 0待确认，1RS485，3故障
+ * 输出：uint32_t 0待确认，1RS485，2CAN，3故障
  */
 uint32_t A_MFC_GetLink(const A_MFC_Context *p_context)
 {
@@ -401,6 +490,11 @@ uint32_t A_MFC_GetLink(const A_MFC_Context *p_context)
     if ((NULL == p_context) || (0U == p_context->configured))
     {
         return 0U;
+    }
+    if (p_context->p_can != NULL)
+    {
+        if (p_context->selected_link == A_MFC_LINK_PROBING) { return p_context->probe_failed ? 3U : 0U; }
+        return p_context->transport_ready ? p_context->selected_link : 3U;
     }
     if (0U == p_context->transport_ready)
     {
@@ -434,6 +528,7 @@ uint32_t A_MFC_SubmitCommand(A_MFC_Context *p_context, const A_MFC_Command *p_co
     }
     p_context->write_command = *p_command;
     p_context->write_attempted = 0U;
+    p_context->deferred_error = A_EX201_RESULT_OK;
     p_context->write_state = A_MFC_WRITE_PENDING;
     return 1U;
 }
@@ -453,10 +548,10 @@ static void A_MFC_EndCommand(A_MFC_Context *p_context, A_MFC_CommandCode code, A
 
 /*
  * 说明：再次核对本通道元数据并转换流量，拒绝超出分辨率的目标
- * 输入：p_context 上下文
+ * 输入：p_context 上下文，now 当前节拍
  * 输出：A_MFC_CommandCode 检查结果
  */
-static A_MFC_CommandCode A_MFC_CheckTarget(A_MFC_Context *p_context)
+static A_MFC_CommandCode A_MFC_CheckTarget(A_MFC_Context *p_context, TickType_t now)
 {
     A_MFC_Channel *p_channel = &p_context->p_channels[p_context->write_command.index]; // 目标通道
     uint32_t required = A_EX201_DEVICE_INFO_FULL_SCALE_VALID | A_EX201_DEVICE_INFO_DECIMAL_VALID |
@@ -478,6 +573,9 @@ static A_MFC_CommandCode A_MFC_CheckTarget(A_MFC_Context *p_context)
         return A_MFC_COMMAND_OFFLINE;
     }
     if (!p_context->transport_ready || p_channel->initialize_state != A_MFC_INIT_READY ||
+        (p_context->p_can != NULL && (TickType_t) (now - p_context->last_valid_tick) >= A_MFC_LINK_LOSS_MS) ||
+        p_context->selected_link == A_MFC_LINK_PROBING ||
+        (p_context->selected_link == A_MFC_LINK_CAN && p_channel->can_profile_checked != 2U) ||
         (p_channel->device_info.valid_flags & required) != required ||
         p_channel->device_info.decimal_places > 3U ||
         p_channel->device_info.flow_source != A_EX201_FLOW_SOURCE_DIGITAL)
@@ -542,7 +640,7 @@ static void A_MFC_CancelWrite(A_MFC_Context *p_context, TickType_t now)
     if (p_context->write_state == A_MFC_WRITE_SOURCE || p_context->write_state == A_MFC_WRITE_ACK ||
         p_context->write_state == A_MFC_WRITE_VERIFY)
     {
-        if (A_EX201_RESULT_OK != A_EX201_Recover(p_context->p_transaction))
+        if (A_EX201_RESULT_OK != A_MFC_RecoverTransport(p_context))
         {
             A_MFC_TransportFailed(p_context, now, A_EX201_RESULT_RECOVERY_ERROR);
         }
@@ -583,6 +681,18 @@ void A_MFC_ProcessCommand(A_MFC_Context *p_context, TickType_t now, uint32_t aut
         return;
     }
     p_channel = &p_context->p_channels[p_context->write_command.index];
+    if (p_context->selected_link == A_MFC_LINK_PROBING)
+    {
+        A_MFC_EndCommand(p_context, A_MFC_COMMAND_NOT_READY, A_EX201_RESULT_NOT_INITIALIZED);
+        return;
+    }
+    if (p_context->deferred_error != A_EX201_RESULT_OK)
+    {
+        result = p_context->deferred_error;
+        p_context->deferred_error = A_EX201_RESULT_OK;
+        A_MFC_CommandError(p_context, result, now);
+        return;
+    }
     // PENDING：等当前轮询结束，核对目标后发送RFSM，重新确认数字控制来源。
     if (p_context->write_state == A_MFC_WRITE_PENDING)
     {
@@ -591,11 +701,11 @@ void A_MFC_ProcessCommand(A_MFC_Context *p_context, TickType_t now, uint32_t aut
             return;
         }
         if (p_context->guard_active &&
-            (TickType_t) (now - p_context->guard_tick) < A_MFC_ERROR_GUARD_MS)
+            (TickType_t) (now - p_context->guard_tick) < A_MFC_GuardTime(p_context))
         {
             return;
         }
-        code = A_MFC_CheckTarget(p_context);
+        code = A_MFC_CheckTarget(p_context, now);
         if (code != A_MFC_COMMAND_OK)
         {
             A_MFC_EndCommand(p_context, code, A_EX201_RESULT_NO_RESULT);
@@ -603,7 +713,7 @@ void A_MFC_ProcessCommand(A_MFC_Context *p_context, TickType_t now, uint32_t aut
         }
         p_context->active_channel = p_context->write_command.index;
         p_context->active_operation = A_MFC_READ_SOURCE;
-        result = A_EX201_ReadFlowSource(p_context->p_transaction, p_channel->address, now);
+        result = A_MFC_StartRead(p_context, p_channel->address, A_MFC_READ_SOURCE, now);
         if (result == A_EX201_RESULT_OK)
         {
             p_context->write_state = A_MFC_WRITE_SOURCE;
@@ -617,7 +727,7 @@ void A_MFC_ProcessCommand(A_MFC_Context *p_context, TickType_t now, uint32_t aut
     // START：最终检查通过后，只发送一次WSFD，不在这里等待仪器回复。
     if (p_context->write_state == A_MFC_WRITE_START)
     {
-        code = A_MFC_CheckTarget(p_context);
+        code = A_MFC_CheckTarget(p_context, now);
         if (code != A_MFC_COMMAND_OK)
         {
             A_MFC_EndCommand(p_context, code, A_EX201_RESULT_NO_RESULT);
@@ -627,21 +737,30 @@ void A_MFC_ProcessCommand(A_MFC_Context *p_context, TickType_t now, uint32_t aut
         p_context->write_attempted = 1U;
         p_channel->flow_valid &= ~(A_MFC_VALID_CONFIRMED | A_MFC_VALID_TARGET);
         p_channel->revision++;
-        result = A_EX201_SetFlow(p_context->p_transaction, p_channel->address, p_context->write_mantissa, now);
+        if (p_context->selected_link == A_MFC_LINK_CAN)
+        {
+            result = A_MfcCan_Start(p_context->p_can, (uint16_t) (p_context->active_channel + 1U),
+                A_MFCCAN_TARGET, 1U, F_CanUser_FloatToBits(p_context->write_command.target_flow), now);
+        }
+        else
+        {
+            result = A_EX201_SetFlow(p_context->p_transaction, p_channel->address, p_context->write_mantissa, now);
+        }
         if (result == A_EX201_RESULT_OK)
         {
             p_context->write_state = A_MFC_WRITE_ACK;
         }
         else
         {
-            A_MFC_CommandError(p_context, result, now);
+            p_context->deferred_error = result; // START可能在临界区，下一轮再操作SPI恢复。
+            p_context->write_state = A_MFC_WRITE_ACK;
         }
         return;
     }
     // READBACK：WSFD返回OK后，还要发送RSFD读取仪器实际保存的设定值。
     if (p_context->write_state == A_MFC_WRITE_READBACK)
     {
-        result = A_EX201_ReadSetFlow(p_context->p_transaction, p_channel->address, now);
+        result = A_MFC_StartRead(p_context, p_channel->address, A_MFC_READ_CONFIRMED, now);
         if (result == A_EX201_RESULT_OK)
         {
             p_context->write_state = A_MFC_WRITE_VERIFY;
@@ -653,18 +772,19 @@ void A_MFC_ProcessCommand(A_MFC_Context *p_context, TickType_t now, uint32_t aut
         return;
     }
     // SOURCE / ACK / VERIFY：只推进当前事务；没有完整响应就留到下一轮。
-    A_EX201_Process(p_context->p_transaction, now);
+    A_MFC_ProcessTransport(p_context, now);
     if (p_context->write_state == A_MFC_WRITE_SOURCE)
     {
-        result = A_EX201_GetDeviceInfoResult(p_context->p_transaction, &p_channel->device_info);
+        result = A_MFC_GetInfo(p_context, &p_channel->device_info);
     }
     else if (p_context->write_state == A_MFC_WRITE_ACK)
     {
-        result = A_EX201_GetCommandResult(p_context->p_transaction);
+        result = p_context->selected_link == A_MFC_LINK_CAN ? A_MfcCan_GetResult(p_context->p_can, NULL) :
+                 A_EX201_GetCommandResult(p_context->p_transaction);
     }
     else
     {
-        result = A_EX201_GetFlowResult(p_context->p_transaction, &mantissa);
+        result = A_MFC_GetFlow(p_context, &mantissa);
     }
     if (result == A_EX201_RESULT_BUSY)
     {

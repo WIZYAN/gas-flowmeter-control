@@ -2,16 +2,6 @@
 #include "A_System.h"
 
 /*
- * 说明：处理流量计侧SPI通信完成及错误事件
- * 输入：p_args FSP SPI回调参数
- * 输出：无
- */
-void H_MFC_CAN_SpiCallback(spi_callback_args_t *p_args)
-{
-    FSP_PARAMETER_NOT_USED(p_args);
-}
-
-/*
  * 说明：流量计通信任务入口
  * 输入：pvParameters FreeRTOS任务参数
  * 输出：无
