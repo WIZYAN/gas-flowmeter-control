@@ -67,7 +67,7 @@ A_System_Context *A_System_GetContext(void);
 uint32_t A_System_Initialize(A_System_Context *p_context);
 /*
  * 说明：CAN任务从队列更新本地缓存、接收结果并发送命令及有效状态
- * 输入：p_context 板级上下文，now 当前1ms节拍
+ * 输入：p_context 板级上下文，now 入口1ms节拍，接收全部快照后由本函数刷新
  * 输出：无
  */
 void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now);

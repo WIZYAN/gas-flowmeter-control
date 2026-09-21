@@ -262,7 +262,7 @@ static void A_System_ReceiveValveState(A_System_Context *p_context)
 
 /*
  * 说明：仅在CAN任务访问host_can；任务间命令、结果、快照及有效状态都按值入队
- * 输入：p_context 板级上下文，now 当前节拍
+ * 输入：p_context 板级上下文，now 入口节拍，接收快照后刷新为当前节拍
  * 输出：无
  */
 void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now)
@@ -271,6 +271,7 @@ void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now)
     A_HostCan_Command g_command = {0}; // CAN任务独占的出队发送副本
     A_Control_Host_Result g_result = {0}; // 从Control收到的结果
     A_Control_Host_State g_state = {0}; // 发给两个消费者的相同状态，各自使用独立队列
+    BaseType_t result_received = pdFAIL; // 本轮是否取得Control执行结果
     if (NULL == p_context || NULL == p_context->p_host_can || NULL == p_context->p_host_telemetry)
     {
         return;
@@ -290,10 +291,16 @@ void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now)
     A_System_ReceiveValveState(p_context);
 
     // 第2步：接收Control转来的实际执行结果，核对请求号后交给CAN协议处理。
-    if (pdPASS == xQueueReceive(p_context->host_result_queue, &g_result, 0U))
+    result_received = xQueueReceive(p_context->host_result_queue, &g_result, 0U);
+    if (pdPASS == result_received)
     {
         A_System_ReceiveTelemetry(p_context); // MFC可能在上次出队后抢占并发布结果，先取结果对应的新快照
         A_System_ReceiveValveState(p_context);
+    }
+    // MFC可能在入口取时后抢占并发布新采样；最后一次快照接收后再取时，避免数据年龄下溢。
+    now = xTaskGetTickCount();
+    if (pdPASS == result_received)
+    {
         (void) A_HostCan_CompleteCommand(p_host, g_result.sequence, (uint8_t) g_result.code, now);
     }
     // 第3步：推进CAN收发，解析上位机查询和写请求。

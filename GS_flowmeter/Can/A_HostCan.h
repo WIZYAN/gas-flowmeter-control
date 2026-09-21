@@ -9,8 +9,8 @@
 #define A_HOSTCAN_CHANNEL_COUNT (6U) // 六个MFC通道
 #define A_HOSTCAN_VERSION_MAJOR (1U) // 固件主版本
 #define A_HOSTCAN_VERSION_MINOR (8U) // 固件次版本
-#define A_HOSTCAN_VERSION_PATCH (0U) // 固件修订版本
-#define A_HOSTCAN_VERSION_DATE (260920U) // 固件版本日期YYMMDD
+#define A_HOSTCAN_VERSION_PATCH (1U) // 固件修订版本
+#define A_HOSTCAN_VERSION_DATE (260921U) // 固件版本日期YYMMDD
 #define A_HOSTCAN_PARAMETER_VERSION (2U) // V9改为只读，联动写入口统一为V7
 #define A_HOSTCAN_FAULT_VALVE_DRIVER (1UL << 0U) // 九阀GPIO驱动故障，实际输出未经确认
 #define A_HOSTCAN_TX_CAPACITY (32U) // 软件回复队列容量
