@@ -121,7 +121,7 @@ typedef struct
     uint32_t transmit_count;                            // 队列占用数
     uint32_t transmit_active;                           // 队首已交给硬件
     uint32_t transmit_started_ms;                       // 硬件发送起始时间
-    uint32_t recovering;                                // 恢复退避状态
+    uint32_t recovering;                                // 恢复退避状态，HostCan 模块已经发现 CAN 异常，当前处于停止业务并等待恢复的阶段。
     uint32_t recovery_ms;                               // 上次恢复尝试时间
     A_HostCan_Command_State command_state;              // 用枚举名称区分入队、执行和回复阶段
     uint32_t command_result;                            // 用户业务结果码，限定0～255

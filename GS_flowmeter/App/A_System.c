@@ -69,9 +69,9 @@ static void A_System_MapChannel(const A_MFC_Channel *p_source, A_HostCan_Channel
     p_target->flow_source = (uint32_t) p_source->device_info.flow_source;
     p_target->internal_valve = (uint32_t) p_source->device_info.valve_state;
     p_target->alarm = p_source->device_info.alarm_state;
-    if (0U != (info_flags & A_EX201_DEVICE_INFO_UNIT_VALID))
+    if (0U != (info_flags & A_EX201_DEVICE_INFO_UNIT_VALID))//
     {
-        p_target->valid_flags |= A_HOSTCAN_VALID_UNIT;
+        p_target->valid_flags |= A_HOSTCAN_VALID_UNIT;//
     }
     if (0U != (info_flags & A_EX201_DEVICE_INFO_SOURCE_VALID))
     {
@@ -131,7 +131,7 @@ uint32_t A_System_Initialize(A_System_Context *p_context)
     if (!p_context->queues_ready)
     {
         // Control任务 → MFC任务：执行命令。
-        if (p_context->command_queue == NULL)
+        if (p_context->command_queue == NULL)//如果命令队列为空，则创建一个静态队列
         {
             p_context->command_queue = xQueueCreateStatic(
                 1U,
@@ -287,15 +287,15 @@ void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now)
         return;
     }
     // 第1步：先从MFC遥测队列更新CAN自己的参数缓存。
-    A_System_ReceiveTelemetry(p_context);
-    A_System_ReceiveValveState(p_context);
+    A_System_ReceiveTelemetry(p_context);//从MFC任务的队列中接收六路数据，更新CAN任务的缓存
+    A_System_ReceiveValveState(p_context);//从Control任务的队列中接收九阀数据，更新CAN任务的缓存
 
     // 第2步：接收Control转来的实际执行结果，核对请求号后交给CAN协议处理。
-    result_received = xQueueReceive(p_context->host_result_queue, &g_result, 0U);
+    result_received = xQueueReceive(p_context->host_result_queue, &g_result, 0U);//从Control任务的队列中接收执行结果，放在g_result中
     if (pdPASS == result_received)
     {
         A_System_ReceiveTelemetry(p_context); // MFC可能在上次出队后抢占并发布结果，先取结果对应的新快照
-        A_System_ReceiveValveState(p_context);
+        A_System_ReceiveValveState(p_context);// Control可能在上次出队后抢占并发布结果，先取结果对应的新快照
     }
     // MFC可能在入口取时后抢占并发布新采样；最后一次快照接收后再取时，避免数据年龄下溢。
     now = xTaskGetTickCount();
@@ -304,24 +304,24 @@ void A_System_ProcessHostCan(A_System_Context *p_context, TickType_t now)
         (void) A_HostCan_CompleteCommand(p_host, g_result.sequence, (uint8_t) g_result.code, now);
     }
     // 第3步：推进CAN收发，解析上位机查询和写请求。
-    A_HostCan_Process(p_host, now);
+    A_HostCan_Process(p_host, now);//处理CAN总线的收发，解析上位机的读写请求
 
     // 第4步：提取本任务刚接受的写请求，按值送给Control任务。
     taskENTER_CRITICAL(); // 发布请求与有效状态不可被Control/MFC插入，硬件等待不在临界区中
-    if (A_HostCan_TakeCommand(p_host, &g_command))
+    if (A_HostCan_TakeCommand(p_host, &g_command))//从CAN任务的缓存中取出上位机的写请求，放在g_command中
     {
         if (pdPASS != xQueueSendToBack(p_context->host_command_queue, &g_command, 0U))//将数据发送到队列尾部，队列信息送入控制任务control_task
         {
-            (void) A_HostCan_CompleteCommand(p_host, g_command.sequence, A_HOSTCAN_CODE_BUSY, now);
+            (void) A_HostCan_CompleteCommand(p_host, g_command.sequence, A_HOSTCAN_CODE_BUSY, now);//如果队列满了，返回忙码给上位机
         }
     }
     // 第5步：两个消费者各有一份队列消息；一个任务出队不会取走另一个任务的消息。
-    g_state.sequence = p_host->command.sequence;
-    g_state.started_tick = p_host->command.started_ms;
-    g_state.updated_tick = now;
-    g_state.valid = A_HostCan_CommandActive(p_host, g_state.sequence, now);
+    g_state.sequence = p_host->command.sequence;//当前正在执行的请求号
+    g_state.started_tick = p_host->command.started_ms;//原请求起点，不能在转发时重置总期限
+    g_state.updated_tick = now;//CAN任务最近一次发布状态的时间
+    g_state.valid = A_HostCan_CommandActive(p_host, g_state.sequence, now);//原请求仍有效
     (void) xQueueOverwrite(p_context->control_state_queue, &g_state);//将控制状态写入
-    (void) xQueueOverwrite(p_context->mfc_state_queue, &g_state);
+    (void) xQueueOverwrite(p_context->mfc_state_queue, &g_state);//将控制状态写入
     taskEXIT_CRITICAL();
 }
 

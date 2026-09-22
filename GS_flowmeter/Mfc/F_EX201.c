@@ -569,7 +569,7 @@ F_EX201_TransportResult F_EX201_SendFrame(
 
     p_context->response_length = 0U;
     hardware_result = H_EX201_Send(
-        &p_context->hardware_context,
+        &p_context->hardware_context,//缓冲区读取这些信息，包括位置和长度等
         p_data,
         data_length);//底层通过串口发送
 

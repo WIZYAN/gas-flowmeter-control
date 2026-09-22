@@ -472,11 +472,11 @@ static void A_HostCan_HandleRequest(A_HostCan_Context *p_context, const F_CanUse
  */
 static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now_ms)
 {
-    F_HostCan_Result state = F_HostCan_GetTransmitState(p_context->p_transport); // 硬件状态
+    F_HostCan_Result state = F_HostCan_GetTransmitState(p_context->p_transport); // 硬件状态，是否发送完成
     if ((F_HOSTCAN_ERROR == state) || ((F_HOSTCAN_BUSY == state) && (0U != p_context->transmit_active) &&
         ((now_ms - p_context->transmit_started_ms) >= A_HOSTCAN_TX_TIMEOUT_MS)))
     {
-        if (0U == p_context->recovering)
+        if (0U == p_context->recovering)//如果没有在恢复中
         {
             p_context->recovering = 1U;
             p_context->failed_transmissions++;
@@ -488,7 +488,7 @@ static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now
             taskEXIT_CRITICAL();
         }
     }
-    if (0U != p_context->recovering)
+    if (0U != p_context->recovering)//如果正在恢复中
     {
         if ((now_ms - p_context->recovery_ms) >= A_HOSTCAN_TX_TIMEOUT_MS)
         {
@@ -500,7 +500,7 @@ static void A_HostCan_ServiceTransmit(A_HostCan_Context *p_context, uint32_t now
         }
         return;
     }
-    if (0U != p_context->transmit_active)
+    if (0U != p_context->transmit_active)//如果正在发送中
     {
         if (F_HOSTCAN_OK == state)
         {
@@ -597,26 +597,26 @@ void A_HostCan_Process(A_HostCan_Context *p_context, uint32_t now_ms)
     {
         return;
     }
-    A_HostCan_ServiceTransmit(p_context, now_ms);
+    A_HostCan_ServiceTransmit(p_context, now_ms);//处理发送队列和超时恢复。这个是向上位机发送数据的
     if (0U != p_context->recovering)
     {
         return;
     }
-    A_HostCan_ServiceCommand(p_context, now_ms);
+    A_HostCan_ServiceCommand(p_context, now_ms);//处理上位机发来的写请求，执行完成后生成回复
     while ((budget > 0U) &&
            ((A_HOSTCAN_TX_CAPACITY - p_context->transmit_count) >= A_HOSTCAN_MAX_READ_COUNT))
     {
-        if (F_HOSTCAN_OK != F_HostCan_Receive(p_context->p_transport, &g_frame))
+        if (F_HOSTCAN_OK != F_HostCan_Receive(p_context->p_transport, &g_frame))//从CAN总线接收数据帧
         {
             break;
         }
         budget--;
-        if (F_CANUSER_RESULT_OK != F_CanUser_Decode(&g_frame, &g_request))
+        if (F_CANUSER_RESULT_OK != F_CanUser_Decode(&g_frame, &g_request))//解码数据帧为请求
         {
             p_context->invalid_frames++;
             continue;
         }
-        A_HostCan_HandleRequest(p_context, &g_request, now_ms);
+        A_HostCan_HandleRequest(p_context, &g_request, now_ms);//处理上位机发来的读写请求
     }
 }
 

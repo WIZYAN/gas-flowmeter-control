@@ -95,8 +95,8 @@ F_HostCan_Result F_HostCan_Receive(F_HostCan_Context *p_context, F_CanUser_Frame
  * 输入：p_context 上下文，p_frame 帧数据
  * 输出：F_HostCan_Result 操作结果
  */
-F_HostCan_Result F_HostCan_Send(F_HostCan_Context *p_context, const F_CanUser_Frame *p_frame)
-{
+F_HostCan_Result F_HostCan_Send(F_HostCan_Context *p_context, const F_CanUser_Frame *p_frame)//F_HostCan_Send是功能层发送函数，p_context是功能层上下文，p_frame是功能层帧数据
+{//F_Canuser_Frame是encoding层的帧结构，包含id和data
     H_HostCan_Frame g_frame = {0}; // 硬件帧
     if ((NULL == p_context) || (NULL == p_frame))
     {
@@ -104,7 +104,7 @@ F_HostCan_Result F_HostCan_Send(F_HostCan_Context *p_context, const F_CanUser_Fr
     }
     g_frame.id = p_frame->id;//将功能层id赋值给硬件层
     memcpy(g_frame.data, p_frame->data, 8U);//将功能层数据赋值给硬件层，硬件层调动can_write
-    return F_HostCan_MapResult(H_HostCan_Send(p_context, &g_frame));
+    return F_HostCan_MapResult(H_HostCan_Send(p_context, &g_frame));//把F_CanUser_Frame转换为H_HostCan_Frame，然后调用H_HostCan_Send发送
 }
 
 

@@ -223,7 +223,7 @@ H_EX201_Result H_EX201_ReceiveByte(
     }
     else
     {
-        *p_data = p_context->receive_buffer[p_context->receive_read_index];
+        *p_data = p_context->receive_buffer[p_context->receive_read_index];//通过callback将数据回收
         p_context->receive_read_index++;
 
         if (p_context->receive_read_index >= H_EX201_RX_BUFFER_LENGTH)
